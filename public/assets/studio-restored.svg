@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 330" role="img" aria-label="The Drawing Studio after restoration">
+  <defs>
+    <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f9d99e"/><stop offset="1" stop-color="#f3bf78"/></linearGradient>
+    <filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#503a34" flood-opacity=".22"/></filter>
+  </defs>
+  <rect x="22" y="24" width="456" height="282" rx="28" fill="#fff1c8" filter="url(#s)"/>
+  <path d="M48 149V99l202-69 202 69v50" fill="#e89558"/>
+  <path d="M62 143h376v147H62Z" fill="url(#wall)" stroke="#b86654" stroke-width="6"/>
+  <path d="m46 99 204-74 204 74-9 20-195-70-195 70Z" fill="#cd6754"/>
+  <path d="M77 191h100v99H77Z" fill="#fff0c2"/>
+  <path d="M88 202v77m38-77v77m38-77v77M77 239h100" stroke="#d9885b" stroke-width="8"/>
+  <path d="M265 178h91v80h-91Z" fill="#6faaa0" stroke="#4b817a" stroke-width="5"/>
+  <path d="M274 188h73v60h-73Z" fill="#d8f0d0"/>
+  <path d="m283 241 19-27 18 21 14-15 12 21Z" fill="#e68c66"/>
+  <path d="M369 290v-100h46v100" fill="#a8664e"/>
+  <path d="M377 205h30v54h-30Z" fill="#8ac2ad"/>
+  <path d="M280 147h29v-18h31v18h20" fill="none" stroke="#d57958" stroke-width="6" stroke-linejoin="round"/>
+  <g><path d="M188 288c4-36 8-55 19-67 11 13 14 31 15 67Z" fill="#6fa270"/><path d="M195 246c-20-13-21-29-18-40 18 4 27 17 18 40Zm25-6c15-15 25-17 36-13-6 18-17 24-36 13Z" fill="#83b778"/><path d="M205 286v-50" stroke="#5a835d" stroke-width="5"/></g>
+  <g fill="#fff7d9" stroke="#d47c59" stroke-width="3"><rect x="300" y="76" width="44" height="43" rx="4"/><path d="m306 108 10-13 8 8 8-12 9 17Z" fill="#e78c63"/><rect x="355" y="83" width="36" height="35" rx="4"/><path d="m361 108 8-13 7 8 8-9 5 14Z" fill="#7da9a0"/></g>
+  <g fill="#f7df86"><circle cx="96" cy="168" r="5"/><circle cx="112" cy="162" r="4"/><circle cx="130" cy="169" r="5"/></g>
+  <text x="250" y="64" text-anchor="middle" fill="#fff0c4" font-family="Georgia,serif" font-size="22" font-weight="700" letter-spacing="2">DRAWING STUDIO</text>
+</svg>

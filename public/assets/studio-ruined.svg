@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 330" role="img" aria-label="The Drawing Studio before restoration">
+  <defs><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#503a34" flood-opacity=".24"/></filter></defs>
+  <rect x="22" y="24" width="456" height="282" rx="28" fill="#dcc79e" filter="url(#s)"/>
+  <path d="M48 149V99l202-69 202 69v50" fill="#a56d5d"/>
+  <path d="M62 143h376v147H62Z" fill="#b9a27f" stroke="#765c52" stroke-width="6"/>
+  <path d="m46 99 204-74 204 74-9 20-195-70-195 70Z" fill="#7b706e"/>
+  <path d="M77 191h100v99H77Z" fill="#8d8275"/>
+  <path d="M88 202v77m38-77v77m38-77v77M77 239h100" stroke="#675e5b" stroke-width="8" opacity=".7"/>
+  <path d="M265 178h91v80h-91Z" fill="#6d7770" stroke="#4d5f59" stroke-width="5"/>
+  <path d="M274 188h73v60h-73Z" fill="#c1c7b1"/>
+  <path d="m284 240 20-22 17 15 13-11 11 18Z" fill="#909c82"/>
+  <path d="M369 290v-100h46v100" fill="#8f6b56"/>
+  <path d="M377 205h30v54h-30Z" fill="#647d76" opacity=".45"/>
+  <g fill="#7e6f63" opacity=".8"><path d="m210 102 30-14 26 11-29 14Z"/><path d="m329 102 28-15 26 13-30 14Z"/></g>
+  <g stroke="#574a47" stroke-width="5" stroke-linecap="round" opacity=".7"><path d="m228 155 39-25"/><path d="m245 161 37-28"/><path d="m305 146 33-22"/></g>
+  <path d="M90 291h327" stroke="#6a594e" stroke-width="7" stroke-linecap="round" opacity=".55"/>
+  <text x="250" y="64" text-anchor="middle" fill="#f7e5b8" font-family="Georgia,serif" font-size="22" font-weight="700" letter-spacing="2">DRAWING STUDIO</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Paint Set">
+  <defs><filter id="s"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#644b3b" flood-opacity=".22"/></filter></defs>
+  <g filter="url(#s)"><path d="M22 39h84v62H22Z" rx="12" fill="#d2775a" stroke="#844e4a" stroke-width="5"/><path d="M22 39h84v18H22Z" fill="#f0af61"/><path d="M32 57h64v34H32Z" fill="#f9e2b0" stroke="#b66b54" stroke-width="3"/><circle cx="45" cy="70" r="7" fill="#df745a"/><circle cx="65" cy="70" r="7" fill="#78a79f"/><circle cx="85" cy="70" r="7" fill="#e4b65a"/><circle cx="45" cy="86" r="7" fill="#8aad73"/><circle cx="65" cy="86" r="7" fill="#b17ab0"/><circle cx="85" cy="86" r="7" fill="#e78a62"/></g>
+  <path d="M31 28c16-12 51-12 67 0" fill="none" stroke="#6d986f" stroke-width="7" stroke-linecap="round"/>
+</svg>

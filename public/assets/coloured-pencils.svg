@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Coloured Pencils">
+  <defs><filter id="s"><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#644b3b" flood-opacity=".22"/></filter></defs>
+  <g transform="rotate(-30 65 68)" filter="url(#s)"><path d="M32 21h18v79H32Z" fill="#d66a58"/><path d="M55 12h18v88H55Z" fill="#6e9d9c"/><path d="M78 25h18v75H78Z" fill="#e5ae57"/><path d="m32 100 9 17 9-17Zm23 0 9 17 9-17Zm23 0 9 17 9-17Z" fill="#f2d3a7"/><path d="m41 117-3-8h6Zm23 0-3-8h6Zm23 0-3-8h6Z" fill="#4e4a4d"/><path d="M32 46h18v7H32Zm23 8h18v7H55Zm23-3h18v7H78Z" fill="#f7e3ad"/></g>
+  <circle cx="102" cy="28" r="10" fill="#e68c64"/><circle cx="104" cy="26" r="3" fill="#fff0b6"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 220" role="img" aria-label="Artist's Desk producer">
+  <defs><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#4b3e48" flood-opacity=".26"/></filter></defs>
+  <g filter="url(#s)">
+    <path d="M42 106h196l-17 71H59Z" fill="#b87555" stroke="#784e46" stroke-width="6"/>
+    <path d="M54 106h172l-10 24H64Z" fill="#df9b62"/>
+    <path d="M67 170v34m146-34v34" stroke="#744c46" stroke-width="12" stroke-linecap="round"/>
+    <path d="M83 90c10-35 27-46 49-46 30 0 48 18 54 46Z" fill="#f8ddb0" stroke="#7d5f54" stroke-width="5"/>
+    <path d="M87 91h96v15H87Z" fill="#6e9b96"/>
+    <path d="M108 74h30v20h-30Z" fill="#fff8dc" stroke="#d2695e" stroke-width="4"/>
+    <path d="m112 90 7-9 6 6 7-8 6 11Z" fill="#e79d5c"/>
+    <path d="M191 80c-12-18-3-35 14-43 7 14 5 31-14 43Z" fill="#7bad7e"/><path d="M204 77c15-14 25-12 34-6-9 14-20 15-34 6Z" fill="#5f9875"/><path d="M204 95V57" stroke="#557c60" stroke-width="4"/>
+    <circle cx="71" cy="91" r="13" fill="#f1b65d"/><path d="M63 88h16m-13 7h10" stroke="#b85f51" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <text x="140" y="28" text-anchor="middle" fill="#5f504c" font-family="Georgia,serif" font-size="18" font-weight="700">ARTIST'S DESK</text>
+</svg>

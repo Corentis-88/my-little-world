@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" role="img" aria-label="A small illustrated town in a sunny valley">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#9fd4d0"/>
+      <stop offset="1" stop-color="#f4e7c5"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#8dbb8d"/>
+      <stop offset="1" stop-color="#5f9575"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#486b62" flood-opacity=".22"/></filter>
+  </defs>
+  <rect width="900" height="610" fill="url(#sky)"/>
+  <circle cx="760" cy="84" r="42" fill="#f8c86c" opacity=".9"/>
+  <g fill="#fff9e8" opacity=".8">
+    <path d="M100 105c14-29 58-29 71 0 28-8 55 10 54 35H57c1-27 19-39 43-35Z"/>
+    <path d="M570 88c10-22 44-23 56-1 22-7 43 8 42 29h-133c1-21 17-33 35-28Z"/>
+  </g>
+  <path d="M0 327c109-75 184-91 291-45 89 38 162 39 250-5 125-62 252-22 359 34v299H0Z" fill="url(#hill)"/>
+  <path d="M0 401c121-48 217-25 294 17 99 54 178 44 275-8 104-56 208-42 331 11v189H0Z" fill="#b3c98e"/>
+  <path d="M-10 521c116-37 219-39 311 4 105 50 182 50 279 10 110-45 205-41 331 1v86H-10Z" fill="#e6c884"/>
+  <path d="M430 610c-4-69 4-120 39-182 22-39 32-69 29-116" fill="none" stroke="#d5a86c" stroke-width="20" opacity=".8"/>
+  <g filter="url(#shadow)">
+    <path d="M99 390V266l80-63 80 63v124Z" fill="#f2d5a0" stroke="#b7775e" stroke-width="5"/>
+    <path d="m78 272 101-82 101 82-18 21-83-66-83 66Z" fill="#c76858"/>
+    <rect x="130" y="303" width="39" height="48" rx="4" fill="#6e9d98"/>
+    <rect x="204" y="303" width="39" height="48" rx="4" fill="#6e9d98"/>
+    <path d="M173 390v-67h30v67" fill="#9f6d53"/>
+  </g>
+  <g filter="url(#shadow)">
+    <path d="M648 377V259l69-53 69 53v118Z" fill="#eab77d" stroke="#9b6650" stroke-width="5"/>
+    <path d="m627 261 90-75 90 75-17 22-73-59-73 59Z" fill="#6c8c83"/>
+    <rect x="674" y="290" width="32" height="38" rx="4" fill="#f8d788"/>
+    <rect x="732" y="290" width="32" height="38" rx="4" fill="#f8d788"/>
+    <path d="M703 377v-58h29v58" fill="#8c5e4c"/>
+  </g>
+  <g opacity=".9">
+    <path d="M50 489c12-41 31-55 58-66-3 35-17 58-58 66Z" fill="#587d6b"/>
+    <path d="M49 490c24-20 44-31 69-38" fill="none" stroke="#416b5c" stroke-width="5"/>
+    <path d="M822 461c9-38 29-55 54-70 1 35-15 59-54 70Z" fill="#6d9673"/>
+    <path d="M823 463c20-24 37-40 62-51" fill="none" stroke="#4e7d64" stroke-width="5"/>
+    <circle cx="318" cy="487" r="9" fill="#d36d58"/><circle cx="350" cy="501" r="8" fill="#f0a34e"/><circle cx="383" cy="480" r="8" fill="#d36d58"/>
+  </g>
+  <g fill="#f6e5b4" opacity=".7"><circle cx="270" cy="114" r="4"/><circle cx="295" cy="128" r="3"/><circle cx="525" cy="165" r="4"/><circle cx="545" cy="142" r="3"/></g>
+</svg>

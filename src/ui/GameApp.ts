@@ -57,7 +57,6 @@ export class GameApp {
     }
     if (meta.kind === "merge") {
       this.discover(meta.resultLevel);
-      this.showToast("A lovely match — look what you made.", "success");
     }
     persistSaveGame(this.state);
     this.studio?.update(this.state);

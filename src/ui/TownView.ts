@@ -1,11 +1,14 @@
 import { GAME_CONFIG } from "../config/gameConfig";
-import { FUTURE_BUILDINGS } from "../data/buildingData";
+import { TOWN_AREAS } from "../data/buildingData";
+import type { TownAreaId } from "../types/content";
 import type { SaveGame } from "../types/game";
+import { isAreaUnlocked } from "../systems/areaSystem";
 import { assetUrl } from "../utils/assets";
 import { buildingIcon } from "./buildingIcons";
 
 export type TownViewHandlers = {
   onEnterStudio: () => void;
+  onEnterArea: (areaId: TownAreaId) => void;
   onResetSave: () => void;
 };
 
@@ -22,7 +25,7 @@ export function renderTownView(host: HTMLElement, save: SaveGame, handlers: Town
         </div>
       </header>
       <section class="town-hero" aria-labelledby="town-title">
-        <img class="town-backdrop" src="${assetUrl("town.svg")}" alt="A little town in a sunny valley" />
+        <img class="town-backdrop" src="${assetUrl("town-complete.png")}" alt="A little town in a sunny valley filled with places to visit" />
         <div class="town-heading">
           <p class="eyebrow">A small beginning</p>
           <h1 id="town-title">Your little world</h1>
@@ -44,22 +47,28 @@ export function renderTownView(host: HTMLElement, save: SaveGame, handlers: Town
       <section class="village-growth stage-${save.studioLevel}"><span>✦</span><div><p class="eyebrow">Village growth</p><h2>${save.studioLevel === 1 ? "A quiet beginning" : save.studioLevel === 2 ? "The paper garden is blooming" : "The gallery lane is alive"}</h2><p>${save.studioLevel === 1 ? "Deliver requests to invite more colour into town." : save.studioLevel === 2 ? "New cut-paper bunting and gardens have appeared." : "Prints, lanterns and a little gallery now brighten the lane."}</p></div></section>
       <section class="future-section" aria-labelledby="future-title">
         <div class="section-heading"><div><p class="eyebrow">The town is growing</p><h2 id="future-title">More little places</h2></div><span class="town-map-mark">01</span></div>
-        <div class="future-grid">${FUTURE_BUILDINGS.map((building) => renderBuildingTease(building)).join("")}</div>
+        <div class="future-grid">${TOWN_AREAS.filter((area) => area.id !== "drawing-studio").map((area) => renderAreaCard(area, save)).join("")}</div>
       </section>
       <p class="town-footer-note">The best things start small.</p>
     </main>
   `;
   host.querySelector<HTMLButtonElement>(".enter-studio")?.addEventListener("click", handlers.onEnterStudio);
+  host.querySelectorAll<HTMLButtonElement>("[data-area]").forEach((button) => button.addEventListener("click", () => handlers.onEnterArea(button.dataset.area as TownAreaId)));
   host.querySelector<HTMLButtonElement>(".reset-button")?.addEventListener("click", handlers.onResetSave);
 }
 
-function renderBuildingTease(building: (typeof FUTURE_BUILDINGS)[number]): string {
-  const coming = building.status === "coming";
+function renderAreaCard(area: (typeof TOWN_AREAS)[number], save: SaveGame): string {
+  const unlocked = isAreaUnlocked(area.id, save.lifetimeCoins, save.studioLevel);
+  const artwork = AREA_ART[area.id];
   return `
-    <article class="future-card ${coming ? "is-coming" : "is-locked"}">
-      <div class="future-icon ${coming ? "" : "muted"}">${buildingIcon(building.icon)}</div>
-      <div class="future-copy"><h3>${building.name}</h3><p>${building.detail}</p></div>
-      ${coming ? "" : `<img class="future-lock" src="${assetUrl("lock.svg")}" alt="" />`}
+    <article class="future-card ${unlocked ? "is-coming" : "is-locked"}">
+      ${artwork ? `<img class="area-art" src="${assetUrl(artwork)}" alt="" />` : `<div class="future-icon ${unlocked ? "" : "muted"}">${buildingIcon(area.icon)}</div>`}
+      <div class="future-copy"><h3>${area.name}</h3><p>${unlocked ? `${area.producer.name} is ready` : area.unlock.description}</p></div>
+      ${unlocked ? `<button class="icon-button" type="button" data-area="${area.id}" aria-label="Enter ${area.name}">→</button>` : `<img class="future-lock" src="${assetUrl("lock.svg")}" alt="Locked" />`}
     </article>
   `;
 }
+
+const AREA_ART: Partial<Record<TownAreaId, string>> = {
+  "kitchen-table": "kitchen-table.svg", "windowsill-greenhouse": "greenhouse.svg", "music-room": "music-room.svg", library: "library.svg", "little-schoolhouse": "schoolhouse.svg", "repair-curiosity-shop": "curiosity-shop.svg", "railway-platform": "railway-platform.svg"
+};

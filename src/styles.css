@@ -666,6 +666,8 @@ h3 {
   background: #f8dba8;
 }
 
+.area-art { width:35px; height:35px; flex:0 0 35px; border-radius:12px; object-fit:cover; background:#f8dba8; }
+
 .future-icon.muted {
   color: #80918a;
   background: #dce2d0;

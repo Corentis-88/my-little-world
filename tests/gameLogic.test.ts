@@ -3,6 +3,7 @@ import { addItemsToBoard, createEmptyBoard, canMerge, mergeItems, moveItem, remo
 import { createSpecialOrder } from "../src/data/orderData";
 import { createDefaultSaveGame, deserializeSaveGame, serializeSaveGame } from "../src/systems/saveSystem";
 import type { BoardItem } from "../src/types/game";
+import { isAreaUnlocked } from "../src/systems/areaSystem";
 
 const item = (level: BoardItem["level"], id = `test-${level}`): BoardItem => ({ id, family: "drawing", level, createdAt: 1 });
 
@@ -44,6 +45,8 @@ describe("save serialization", () => {
     save.buildings.drawingStudioStage = 1;
     save.regularOrdersCompleted = 5;
     save.specialOrder = createSpecialOrder(0, false, 1_000);
+    save.areas["kitchen-table"].unlocked = true;
+    save.areas["kitchen-table"].board[0] = item(2, "kitchen-save");
     const restored = deserializeSaveGame(serializeSaveGame(save));
     expect(restored.coins).toBe(125);
     expect(restored.board[4]).toMatchObject({ id: "saved-item", level: 4 });
@@ -52,6 +55,7 @@ describe("save serialization", () => {
     expect(restored.buildings.drawingStudioStage).toBe(1);
     expect(restored.regularOrdersCompleted).toBe(5);
     expect(restored.specialOrder).toMatchObject({ visitor: "margo", requestedLevel: 5, expiresAt: 901_000 });
+    expect(restored.areas["kitchen-table"].board[0]).toMatchObject({ id: "kitchen-save" });
   });
 });
 
@@ -74,6 +78,15 @@ describe("special visiting requests", () => {
     const overflow = addItemsToBoard(full, [2], (level) => item(level, "overflow"));
     expect(overflow.placed).toEqual([]);
     expect(overflow.unplaced).toEqual([2]);
+  });
+});
+
+describe("full town unlocks", () => {
+  it("opens later destinations from lifetime village progress", () => {
+    expect(isAreaUnlocked("kitchen-table", 500, 1)).toBe(true);
+    expect(isAreaUnlocked("little-schoolhouse", 2_700, 3)).toBe(true);
+    expect(isAreaUnlocked("railway-platform", 4_499, 5)).toBe(false);
+    expect(isAreaUnlocked("railway-platform", 4_500, 1)).toBe(true);
   });
 });
 

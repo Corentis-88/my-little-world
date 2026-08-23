@@ -7,6 +7,9 @@ import { clearRememberedAccess } from "../utils/access";
 import { createDefaultSaveGame, loadSaveGame, persistSaveGame } from "../systems/saveSystem";
 import type { BoardChangeMeta, BoardState, ItemFamily, ItemLevel, SaveGame } from "../types/game";
 import { renderTownView } from "./TownView";
+import type { TownAreaId } from "../types/content";
+import { isAreaUnlocked } from "../systems/areaSystem";
+import { areaItemName } from "../data/areaItemData";
 import { StudioView } from "./StudioView";
 
 export class GameApp {
@@ -29,10 +32,26 @@ export class GameApp {
     this.destroyBoard();
     window.scrollTo(0, 0);
     renderTownView(this.host, this.state, {
-      onEnterStudio: () => this.showStudio(),
+      onEnterStudio: () => this.showArea("drawing-studio"),
+      onEnterArea: (areaId) => this.showArea(areaId),
       onResetSave: () => this.resetSave()
     });
     window.setTimeout(() => window.scrollTo(0, 0), 0);
+  }
+
+  private showArea(areaId: TownAreaId): void {
+    if (!isAreaUnlocked(areaId, this.state.lifetimeCoins, this.state.studioLevel)) {
+      this.showToast("Keep helping the village to open this place.");
+      return;
+    }
+    this.state.activeArea = areaId;
+    this.state.activeFamily = areaId === "drawing-studio" ? "drawing" : areaId === "kitchen-table" || areaId === "windowsill-greenhouse" ? "collage" : "prints";
+    this.state.areas[areaId].unlocked = true;
+    this.state.board = this.state.areas[areaId].board;
+    this.state.orders = this.state.areas[areaId].orders;
+    this.state.orderSequence = this.state.areas[areaId].orderSequence;
+    persistSaveGame(this.state);
+    this.showStudio();
   }
 
   public showStudio(): void {
@@ -63,6 +82,7 @@ export class GameApp {
 
   private handleBoardChange(board: BoardState, meta: BoardChangeMeta): void {
     this.state.board = board;
+    this.state.areas[this.state.activeArea].board = board;
     if (meta.kind === "produce") {
       this.discover(meta.producedLevel);
     }
@@ -85,12 +105,16 @@ export class GameApp {
       return;
     }
     this.state.board = removed.board;
+    this.state.areas[this.state.activeArea].board = this.state.board;
     this.state.coins += order.reward;
     const remaining = this.state.orders.filter((candidate) => candidate.id !== order.id);
     const replacement = createReplacementOrder(this.state.orderSequence, remaining, unlockedFamilies(this.state.studioLevel));
     this.state.orderSequence += 1;
     this.state.orders = [...remaining, replacement];
+    this.state.areas[this.state.activeArea].orders = this.state.orders;
+    this.state.areas[this.state.activeArea].orderSequence = this.state.orderSequence;
     this.state.regularOrdersCompleted += 1;
+    this.state.areas[this.state.activeArea].completedOrders += 1;
     this.maybeCreateSpecialOrder();
     this.addEarnings(order.reward);
     persistSaveGame(this.state);
@@ -124,7 +148,7 @@ export class GameApp {
     if (!order) return;
     const removed = removeItemsForOrder(this.state.board, 7, order.quantity, order.family);
     if (!removed) return;
-    this.state.board = removed.board; this.state.coins += order.reward; this.addEarnings(order.reward); this.state.masterpieceOrder = null;
+    this.state.board = removed.board; this.state.areas[this.state.activeArea].board = this.state.board; this.state.coins += order.reward; this.addEarnings(order.reward); this.state.masterpieceOrder = null;
     persistSaveGame(this.state); this.phaser?.syncBoard(this.state.board); this.studio?.update(this.state); this.studio?.animateCoins();
     this.studio?.showFeedback(`Collector's sale complete. +${order.reward} coins for the village!`, "success");
   }
@@ -152,6 +176,7 @@ export class GameApp {
     const reward = addItemsToBoard(removed.board, order.bonusItemLevels, (level) => this.createRewardItem(level));
     const overflowCoins = reward.unplaced.length * GAME_CONFIG.specialVisit.fallbackCoinsPerSupply;
     this.state.board = reward.board;
+    this.state.areas[this.state.activeArea].board = this.state.board;
     this.state.coins += order.coinReward + overflowCoins;
     this.state.specialOrder = null;
     reward.placed.forEach((level) => this.discover(level));
@@ -207,7 +232,7 @@ export class GameApp {
   private showDiscovery(level: ItemLevel): void {
     const existing = document.querySelector(".discovery-banner");
     existing?.remove();
-    const itemName = ["Pencil", "Coloured Pencils", "Paintbrush", "Paint Set", "Sketch", "Finished Drawing", "Beautiful Artwork"][level - 1];
+    const itemName = areaItemName(this.state.activeArea, level);
     const banner = document.createElement("div");
     banner.className = "discovery-banner";
     banner.innerHTML = `<span class="discovery-spark">✦</span><div><small>NEW DISCOVERY!</small><strong>${itemName}</strong></div>`;

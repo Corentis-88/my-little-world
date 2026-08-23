@@ -64,6 +64,8 @@ export type SaveGame = {
   lifetimeCoins: number;
   studioLevel: 1 | 2 | 3;
   activeFamily: ItemFamily;
+  activeArea: import("./content").TownAreaId;
+  areas: import("./area").AreaProgressMap;
   board: BoardState;
   discoveries: ItemLevel[];
   orders: Order[];

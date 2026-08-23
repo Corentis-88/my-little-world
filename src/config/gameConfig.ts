@@ -21,7 +21,7 @@ export const GAME_CONFIG = {
   },
   progression: { levelTwoCoins: 180, levelThreeCoins: 650, masterpieceQuantity: 2 },
   save: {
-    version: 3,
+    version: 4,
     key: "my-little-world-save-v1",
     accessKey: "my-little-world-access"
   },

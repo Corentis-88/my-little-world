@@ -4,6 +4,8 @@ import { customerById, specialVisitorById } from "../data/orderData";
 import { countItemsAtLevel } from "../systems/boardSystem";
 import type { Order, SaveGame, SpecialOrder } from "../types/game";
 import { assetUrl } from "../utils/assets";
+import { TOWN_AREAS } from "../data/buildingData";
+import { areaItemName } from "../data/areaItemData";
 
 export type StudioViewHandlers = {
   onBack: () => void;
@@ -32,11 +34,15 @@ export class StudioView {
   public constructor(host: HTMLElement, save: SaveGame, handlers: StudioViewHandlers) {
     this.host = host;
     this.handlers = handlers;
+    const area = TOWN_AREAS.find((entry) => entry.id === save.activeArea);
+    if (!area) {
+      throw new Error("Missing active town area");
+    }
     this.host.innerHTML = `
       <main class="studio-screen">
         <header class="topbar studio-topbar">
           <button class="back-button" type="button"><span aria-hidden="true">←</span><span>Town</span></button>
-          <div class="studio-title"><span class="studio-brush-mark">✦</span><div><p class="eyebrow">Now making</p><h1>The Drawing Studio</h1></div></div>
+          <div class="studio-title"><span class="studio-brush-mark" style="background:${area.accent}">✦</span><div><p class="eyebrow">Now visiting</p><h1>${area.name}</h1></div></div>
           <div class="topbar-actions"><div class="coin-pill studio-coin" aria-label="${save.coins} coins"><img src="${assetUrl("coin.svg")}" alt="" /><strong class="coin-value">${save.coins}</strong></div><button class="icon-button reset-button" type="button" aria-label="Reset save" title="Reset save">↺</button></div>
         </header>
         <section class="orders-section" aria-labelledby="orders-title">
@@ -46,7 +52,7 @@ export class StudioView {
         <section class="visitor-section" aria-live="polite"></section>
         <section class="masterpiece-section" aria-live="polite"></section>
         <section class="board-section" aria-labelledby="board-title">
-          <div class="board-heading"><div><p class="eyebrow">Make a little magic</p><h2 id="board-title">The artist's desk</h2></div><span class="board-tip">drag to merge</span></div><div class="family-switcher"></div>
+          <div class="board-heading"><div><p class="eyebrow">${area.producer.description}</p><h2 id="board-title">${area.producer.name}</h2></div><span class="board-tip">drag to merge</span></div><div class="family-switcher"></div>
           <div class="board-shell"><div class="phaser-mount"></div><div class="board-instruction"><span class="instruction-spark">✦</span> Tap the desk to draw</div></div>
         </section>
         <section class="restore-panel" aria-labelledby="restore-title">
@@ -127,7 +133,7 @@ export class StudioView {
 
   private renderOrder(order: Order, save: SaveGame): string {
     const customer = customerById(order.customer);
-    const item = itemFor(order.family, order.requestedLevel);
+    const item = { ...itemFor(order.family, order.requestedLevel), name: areaItemName(save.activeArea, order.requestedLevel) };
     const ready = countItemsAtLevel(save.board, order.requestedLevel, order.family) >= order.quantity;
     return `
       <article class="order-card ${ready ? "is-ready" : ""}">
@@ -142,7 +148,7 @@ export class StudioView {
     const host = this.host.querySelector<HTMLElement>(".masterpiece-section");
     const order = save.masterpieceOrder;
     if (!host || !order) { if (host) host.innerHTML = ""; return; }
-    const item = itemFor(order.family, 7);
+    const item = { ...itemFor(order.family, 7), name: areaItemName(save.activeArea, 7) };
     const ready = countItemsAtLevel(save.board, 7, order.family) >= 2;
     host.innerHTML = `<article class="visitor-card ${ready ? "is-ready" : ""}"><div class="visitor-label">✦ Collector's offer <span>MAX pieces</span></div><div class="visitor-main"><div class="visitor-portrait">✦</div><div class="visitor-copy"><div class="order-name"><strong>Village Collector</strong><span>Two ${item.name}s for the town gallery.</span></div><div class="order-request"><img src="${assetUrl(item.asset)}" alt="${item.name}" /><span>${item.name} ×2</span></div></div><button class="deliver-button visitor-button" type="button" data-deliver-masterpiece ${ready ? "" : "disabled"}>${ready ? "Sell ✦" : "Keep making"}</button></div><div class="visitor-rewards"><span><img src="${assetUrl("coin.svg")}" alt="" />+${order.reward}</span><span>unlocks village growth</span></div></article>`;
     host.querySelector<HTMLButtonElement>("[data-deliver-masterpiece]")?.addEventListener("click", this.handlers.onDeliverMasterpiece);
@@ -163,16 +169,16 @@ export class StudioView {
         return;
       }
       const ready = countItemsAtLevel(save.board, order.requestedLevel, order.family) >= order.quantity;
-      this.visitorHost.innerHTML = this.renderSpecialOrderCard(order, ready, secondsLeft);
+      this.visitorHost.innerHTML = this.renderSpecialOrderCard(order, ready, secondsLeft, save.activeArea);
       this.visitorHost.querySelector<HTMLButtonElement>("[data-deliver-special]")?.addEventListener("click", this.handlers.onDeliverSpecial);
     };
     render();
     if (this.ticker === undefined) this.ticker = window.setInterval(render, 1000);
   }
 
-  private renderSpecialOrderCard(order: SpecialOrder, ready: boolean, secondsLeft: number): string {
+  private renderSpecialOrderCard(order: SpecialOrder, ready: boolean, secondsLeft: number, areaId: import("../types/content").TownAreaId): string {
     const visitor = specialVisitorById(order.visitor);
-    const item = itemFor(order.family, order.requestedLevel);
+    const item = { ...itemFor(order.family, order.requestedLevel), name: areaItemName(areaId, order.requestedLevel) };
     const time = secondsLeft <= 0 ? "Leaving now" : formatTime(secondsLeft);
     return `
       <article class="visitor-card ${ready ? "is-ready" : ""}">

@@ -2,18 +2,24 @@ import { BOARD_SIZE, GAME_CONFIG, PRODUCER_SLOT } from "../config/gameConfig";
 import { createInitialOrders } from "../data/orderData";
 import { isCustomerId, isItemFamily, isItemLevel, isSpecialVisitorId, type BoardItem, type BoardState, type ItemLevel, type Order, type SaveGame, type SpecialOrder } from "../types/game";
 import { createEmptyBoard } from "./boardSystem";
+import { createAreaProgressMap } from "./areaSystem";
+import { TOWN_AREAS } from "../data/buildingData";
+import type { AreaProgressMap } from "../types/area";
 
 export const SAVE_KEY = GAME_CONFIG.save.key;
 export const SAVE_VERSION = GAME_CONFIG.save.version;
 
 export function createDefaultSaveGame(): SaveGame {
+  const areas = createAreaProgressMap();
   return {
     version: SAVE_VERSION,
     coins: 0,
     lifetimeCoins: 0,
     studioLevel: 1,
     activeFamily: "drawing",
-    board: createEmptyBoard(),
+    activeArea: "drawing-studio",
+    areas,
+    board: areas["drawing-studio"].board,
     discoveries: [],
     orders: createInitialOrders(),
     orderSequence: 3,
@@ -60,16 +66,24 @@ function migrateSaveGame(value: unknown): SaveGame {
   }
   const defaults = createDefaultSaveGame();
   const stage = value.buildings && isRecord(value.buildings) && value.buildings.drawingStudioStage === 1 ? 1 : 0;
+  const areas = normaliseAreas(value.areas);
+  if (!isRecord(value.areas)) {
+    areas["drawing-studio"].board = normaliseBoard(value.board);
+    areas["drawing-studio"].orders = normaliseOrders(value.orders, defaults.orders);
+    areas["drawing-studio"].orderSequence = typeof value.orderSequence === "number" && Number.isInteger(value.orderSequence) && value.orderSequence >= 3 ? value.orderSequence : defaults.orderSequence;
+  }
   return {
     version: SAVE_VERSION,
     coins: typeof value.coins === "number" && Number.isFinite(value.coins) && value.coins >= 0 ? Math.floor(value.coins) : defaults.coins,
     lifetimeCoins: normaliseNonNegativeInteger(value.lifetimeCoins, 0),
     studioLevel: value.studioLevel === 2 || value.studioLevel === 3 ? value.studioLevel : 1,
     activeFamily: isItemFamily(value.activeFamily) ? value.activeFamily : "drawing",
-    board: normaliseBoard(value.board),
+    activeArea: "drawing-studio",
+    areas,
+    board: areas["drawing-studio"].board,
     discoveries: normaliseDiscoveries(value.discoveries),
-    orders: normaliseOrders(value.orders, defaults.orders),
-    orderSequence: typeof value.orderSequence === "number" && Number.isInteger(value.orderSequence) && value.orderSequence >= 3 ? value.orderSequence : defaults.orderSequence,
+    orders: areas["drawing-studio"].orders,
+    orderSequence: areas["drawing-studio"].orderSequence,
     regularOrdersCompleted: normaliseNonNegativeInteger(value.regularOrdersCompleted, defaults.regularOrdersCompleted),
     specialOrderSequence: normaliseNonNegativeInteger(value.specialOrderSequence, defaults.specialOrderSequence),
     nextSpecialOrderAt: normalisePositiveInteger(value.nextSpecialOrderAt, defaults.nextSpecialOrderAt),
@@ -78,6 +92,23 @@ function migrateSaveGame(value: unknown): SaveGame {
     masterpieceOrder: null,
     buildings: { drawingStudioStage: stage }
   };
+}
+
+function normaliseAreas(value: unknown): AreaProgressMap {
+  const areas = createAreaProgressMap();
+  if (!isRecord(value)) return areas;
+  TOWN_AREAS.forEach((area) => {
+    const saved = value[area.id];
+    if (!isRecord(saved)) return;
+    areas[area.id] = {
+      unlocked: saved.unlocked === true || area.id === "drawing-studio",
+      board: normaliseBoard(saved.board),
+      completedOrders: normaliseNonNegativeInteger(saved.completedOrders, 0),
+      orders: normaliseOrders(saved.orders, areas[area.id].orders),
+      orderSequence: normalisePositiveInteger(saved.orderSequence, areas[area.id].orderSequence)
+    };
+  });
+  return areas;
 }
 
 function normaliseNonNegativeInteger(value: unknown, fallback: number): number {

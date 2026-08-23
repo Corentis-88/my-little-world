@@ -17,8 +17,16 @@ type DragState = {
 
 export class PhaserGame {
   private readonly game: Phaser.Game;
+  private readonly blockNativePress: (event: Event) => void;
+  private readonly parent: HTMLElement;
 
   public constructor(parent: HTMLElement, board: BoardState, callbacks: MergeGameCallbacks) {
+    this.parent = parent;
+    this.blockNativePress = (event) => event.preventDefault();
+    parent.style.setProperty("-webkit-touch-callout", "none");
+    parent.addEventListener("contextmenu", this.blockNativePress);
+    parent.addEventListener("selectstart", this.blockNativePress);
+    parent.addEventListener("dragstart", this.blockNativePress);
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
       parent,
@@ -52,6 +60,9 @@ export class PhaserGame {
   }
 
   public destroy(): void {
+    this.parent.removeEventListener("contextmenu", this.blockNativePress);
+    this.parent.removeEventListener("selectstart", this.blockNativePress);
+    this.parent.removeEventListener("dragstart", this.blockNativePress);
     this.game.destroy(true);
   }
 }
@@ -80,6 +91,8 @@ class MergeScene extends Phaser.Scene {
   }
 
   public create(): void {
+    this.input.dragDistanceThreshold = 10;
+    this.input.dragTimeThreshold = 0;
     this.boardGraphics = this.add.graphics();
     this.targetGraphics = this.add.graphics().setDepth(2);
     this.drawBoard();
@@ -177,7 +190,7 @@ class MergeScene extends Phaser.Scene {
     this.dragState = { origin, target: null };
     gameObject.setDepth(30);
     gameObject.setScale(1.14);
-    this.showTarget(origin);
+    this.clearTarget();
   }
 
   private handleDrag(
@@ -193,7 +206,11 @@ class MergeScene extends Phaser.Scene {
     gameObject.y = dragY;
     const target = this.slotAt(dragX, dragY);
     this.dragState.target = target;
-    this.showTarget(target ?? this.dragState.origin, target !== null && target !== PRODUCER_SLOT);
+    if (target !== null && target !== this.dragState.origin && target !== PRODUCER_SLOT) {
+      this.showTarget(target, true);
+    } else {
+      this.clearTarget();
+    }
   }
 
   private handleDragEnd(pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject): void {

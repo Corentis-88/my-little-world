@@ -14,8 +14,13 @@ export const GAME_CONFIG = {
   restoration: {
     firstCost: 200
   },
+  specialVisit: {
+    everyRegularOrders: 5,
+    durationMs: 15 * 60 * 1000,
+    fallbackCoinsPerSupply: 15
+  },
   save: {
-    version: 1,
+    version: 2,
     key: "my-little-world-save-v1",
     accessKey: "my-little-world-access"
   },

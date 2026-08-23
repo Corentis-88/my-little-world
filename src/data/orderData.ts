@@ -1,11 +1,16 @@
-import type { CustomerDefinition } from "../types/game";
-import type { CustomerId, ItemLevel, Order } from "../types/game";
+import { GAME_CONFIG } from "../config/gameConfig";
+import type { CustomerDefinition, SpecialVisitorDefinition } from "../types/game";
+import type { CustomerId, ItemLevel, Order, SpecialOrder, SpecialVisitorId } from "../types/game";
 
 export const CUSTOMERS = [
   { id: "mia", name: "Mia", portrait: "portrait-mia.svg", greeting: "Something sunny, please?", accent: "#d77962" },
   { id: "leo", name: "Leo", portrait: "portrait-leo.svg", greeting: "I have an idea...", accent: "#6f9992" },
   { id: "ivy", name: "Ivy", portrait: "portrait-ivy.svg", greeting: "A little wonder for my windowsill.", accent: "#7da06f" }
 ] as const satisfies readonly CustomerDefinition[];
+
+export const SPECIAL_VISITORS = [
+  { id: "margo", name: "Margo Bell", portrait: "portrait-margo.svg", greeting: "I am collecting little works with a lot of heart.", accent: "#b27a91" }
+] as const satisfies readonly SpecialVisitorDefinition[];
 
 export const REWARD_BY_LEVEL: Record<2 | 3 | 4 | 5 | 6, number> = {
   2: 15,
@@ -31,6 +36,10 @@ export function customerById(id: CustomerId): CustomerDefinition {
   return customer;
 }
 
+export function specialVisitorById(id: SpecialVisitorId): SpecialVisitorDefinition {
+  return SPECIAL_VISITORS.find((visitor) => visitor.id === id) ?? SPECIAL_VISITORS[0];
+}
+
 export function createInitialOrders(): Order[] {
   return [
     createOrder("order-1", "mia", 2),
@@ -48,6 +57,20 @@ export function createReplacementOrder(sequence: number, active: readonly Order[
     ? (fallbackLevels.find((candidate) => !occupiedLevels.has(candidate)) ?? plannedLevel)
     : plannedLevel;
   return createOrder(`order-${sequence + 1}`, customer?.id ?? "mia", level);
+}
+
+export function createSpecialOrder(sequence: number, restored: boolean, now = Date.now()): SpecialOrder {
+  const requestedLevel: ItemLevel = restored || sequence % 2 === 1 ? 6 : 5;
+  const bonusItemLevels: ItemLevel[] = requestedLevel === 5 ? [2, 2, 3] : [3, 3, 4];
+  return {
+    id: `visitor-${sequence + 1}`,
+    visitor: "margo",
+    requestedLevel,
+    quantity: 1,
+    coinReward: requestedLevel === 5 ? 140 : 240,
+    bonusItemLevels,
+    expiresAt: now + GAME_CONFIG.specialVisit.durationMs
+  };
 }
 
 function createOrder(id: string, customer: CustomerId, requestedLevel: 2 | 3 | 4 | 5 | 6): Order {

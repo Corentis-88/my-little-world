@@ -1,13 +1,15 @@
 import { GAME_CONFIG } from "../config/gameConfig";
 import { ITEM_BY_LEVEL } from "../data/itemData";
-import { customerById } from "../data/orderData";
+import { customerById, specialVisitorById } from "../data/orderData";
 import { countItemsAtLevel } from "../systems/boardSystem";
-import type { Order, SaveGame } from "../types/game";
+import type { Order, SaveGame, SpecialOrder } from "../types/game";
 import { assetUrl } from "../utils/assets";
 
 export type StudioViewHandlers = {
   onBack: () => void;
   onDeliver: (orderId: string) => void;
+  onDeliverSpecial: () => void;
+  onSpecialExpired: () => void;
   onRestore: () => void;
   onResetSave: () => void;
 };
@@ -17,10 +19,13 @@ export class StudioView {
   private readonly handlers: StudioViewHandlers;
   private readonly coinValue: HTMLElement;
   private readonly ordersHost: HTMLElement;
+  private readonly visitorHost: HTMLElement;
   private readonly boardMount: HTMLElement;
   private readonly restoreCopy: HTMLElement;
   private readonly restoreButton: HTMLButtonElement;
   private readonly feedback: HTMLElement;
+  private ticker?: number;
+  private expiringSpecialId?: string;
 
   public constructor(host: HTMLElement, save: SaveGame, handlers: StudioViewHandlers) {
     this.host = host;
@@ -36,6 +41,7 @@ export class StudioView {
           <div class="orders-heading"><div><p class="eyebrow">Little requests</p><h2 id="orders-title">Customer orders</h2></div><span class="order-count">3 waiting</span></div>
           <div class="orders-list"></div>
         </section>
+        <section class="visitor-section" aria-live="polite"></section>
         <section class="board-section" aria-labelledby="board-title">
           <div class="board-heading"><div><p class="eyebrow">Make a little magic</p><h2 id="board-title">The artist's desk</h2></div><span class="board-tip">drag to merge</span></div>
           <div class="board-shell"><div class="phaser-mount"></div><div class="board-instruction"><span class="instruction-spark">✦</span> Tap the desk to draw</div></div>
@@ -50,6 +56,7 @@ export class StudioView {
     `;
     this.coinValue = requiredElement(this.host, ".coin-value");
     this.ordersHost = requiredElement(this.host, ".orders-list");
+    this.visitorHost = requiredElement(this.host, ".visitor-section");
     this.boardMount = requiredElement(this.host, ".phaser-mount");
     this.restoreCopy = requiredElement(this.host, ".restore-status");
     this.restoreButton = requiredElement(this.host, ".restore-button");
@@ -68,7 +75,15 @@ export class StudioView {
     this.coinValue.textContent = `${save.coins}`;
     this.host.querySelector<HTMLElement>(".studio-coin")?.setAttribute("aria-label", `${save.coins} coins`);
     this.renderOrders(save);
+    this.renderSpecialOrder(save);
     this.renderRestoration(save);
+  }
+
+  public destroy(): void {
+    if (this.ticker !== undefined) {
+      window.clearInterval(this.ticker);
+      this.ticker = undefined;
+    }
   }
 
   public animateCoins(): void {
@@ -111,6 +126,40 @@ export class StudioView {
     `;
   }
 
+  private renderSpecialOrder(save: SaveGame): void {
+    const order = save.specialOrder;
+    if (!order) {
+      this.visitorHost.innerHTML = "";
+      this.destroy();
+      return;
+    }
+    const render = () => {
+      const secondsLeft = Math.max(0, Math.ceil((order.expiresAt - Date.now()) / 1000));
+      if (secondsLeft === 0 && this.expiringSpecialId !== order.id) {
+        this.expiringSpecialId = order.id;
+        this.handlers.onSpecialExpired();
+        return;
+      }
+      const ready = countItemsAtLevel(save.board, order.requestedLevel) >= order.quantity;
+      this.visitorHost.innerHTML = this.renderSpecialOrderCard(order, ready, secondsLeft);
+      this.visitorHost.querySelector<HTMLButtonElement>("[data-deliver-special]")?.addEventListener("click", this.handlers.onDeliverSpecial);
+    };
+    render();
+    if (this.ticker === undefined) this.ticker = window.setInterval(render, 1000);
+  }
+
+  private renderSpecialOrderCard(order: SpecialOrder, ready: boolean, secondsLeft: number): string {
+    const visitor = specialVisitorById(order.visitor);
+    const item = ITEM_BY_LEVEL[order.requestedLevel];
+    const time = secondsLeft <= 0 ? "Leaving now" : formatTime(secondsLeft);
+    return `
+      <article class="visitor-card ${ready ? "is-ready" : ""}">
+        <div class="visitor-label">✦ Visiting request <span>${time}</span></div>
+        <div class="visitor-main"><img class="visitor-portrait" src="${assetUrl(visitor.portrait)}" alt="${visitor.name}" /><div class="visitor-copy"><div class="order-name"><strong>${visitor.name}</strong><span>${visitor.greeting}</span></div><div class="order-request"><img src="${assetUrl(item.asset)}" alt="${item.name}" /><span>${item.name}</span></div></div><button class="deliver-button visitor-button" type="button" data-deliver-special ${ready && secondsLeft > 0 ? "" : "disabled"}>${ready ? "Deliver ✦" : "Make it"}</button></div>
+        <div class="visitor-rewards"><span><img src="${assetUrl("coin.svg")}" alt="" />+${order.coinReward}</span><span>plus supplies</span>${order.bonusItemLevels.map((level) => `<img src="${assetUrl(ITEM_BY_LEVEL[level].asset)}" alt="${ITEM_BY_LEVEL[level].name}" />`).join("")}</div>
+      </article>`;
+  }
+
   private renderRestoration(save: SaveGame): void {
     const restored = save.buildings.drawingStudioStage === 1;
     const cost = GAME_CONFIG.restoration.firstCost;
@@ -134,4 +183,9 @@ function requiredElement<T extends HTMLElement>(host: HTMLElement, selector: str
     throw new Error(`Missing studio element: ${selector}`);
   }
   return element;
+}
+
+function formatTime(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
 }

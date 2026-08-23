@@ -784,7 +784,8 @@ h3 {
 }
 
 .orders-section,
-.board-section {
+.board-section,
+.visitor-section {
   padding: 0 13px;
 }
 
@@ -819,6 +820,78 @@ h3 {
 .orders-list {
   display: grid;
   gap: 6px;
+}
+
+.visitor-section:empty {
+  display: none;
+}
+
+.visitor-card {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid rgba(178, 104, 137, .34);
+  border-radius: 18px;
+  background: linear-gradient(120deg, rgba(255, 243, 233, .96), rgba(251, 239, 212, .92));
+  box-shadow: 0 6px 16px rgba(133, 81, 105, .09);
+}
+
+.visitor-card.is-ready {
+  border-color: rgba(194, 101, 85, .6);
+  box-shadow: 0 7px 19px rgba(194, 101, 85, .16);
+}
+
+.visitor-label,
+.visitor-rewards,
+.visitor-main {
+  display: flex;
+  align-items: center;
+}
+
+.visitor-label {
+  justify-content: space-between;
+  padding: 0 2px 5px;
+  color: #9d607d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.visitor-label span {
+  color: #ac7d4b;
+  letter-spacing: .02em;
+}
+
+.visitor-main { gap: 7px; }
+
+.visitor-portrait {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 14px;
+}
+
+.visitor-copy { min-width: 0; flex: 1; }
+.visitor-button { flex: 0 0 auto; }
+
+.visitor-rewards {
+  min-height: 23px;
+  gap: 4px;
+  margin: 5px 1px 0 49px;
+  color: #9b7858;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.visitor-rewards span:first-child {
+  display: inline-flex;
+  align-items: center;
+  color: #a36b39;
+}
+
+.visitor-rewards img {
+  width: 20px;
+  height: 20px;
 }
 
 .order-card {

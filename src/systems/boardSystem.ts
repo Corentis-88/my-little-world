@@ -89,6 +89,27 @@ export function removeItemsForOrder(board: BoardState, level: ItemLevel, quantit
   return { board: next, removed };
 }
 
+export function addItemsToBoard(
+  board: BoardState,
+  levels: readonly ItemLevel[],
+  createItem: (level: ItemLevel) => BoardItem
+): { board: BoardState; placed: ItemLevel[]; unplaced: ItemLevel[] } {
+  const next = cloneBoard(board);
+  const freeSlots = findFreeSlots(next);
+  const placed: ItemLevel[] = [];
+  const unplaced: ItemLevel[] = [];
+  levels.forEach((level, index) => {
+    const slot = freeSlots[index];
+    if (slot === undefined) {
+      unplaced.push(level);
+      return;
+    }
+    next[slot] = createItem(level);
+    placed.push(level);
+  });
+  return { board: next, placed, unplaced };
+}
+
 export function produceItem(
   board: BoardState,
   random: () => number,

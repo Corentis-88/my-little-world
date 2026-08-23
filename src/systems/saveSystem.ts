@@ -1,6 +1,6 @@
 import { BOARD_SIZE, GAME_CONFIG, PRODUCER_SLOT } from "../config/gameConfig";
 import { createInitialOrders } from "../data/orderData";
-import { isCustomerId, isItemLevel, type BoardItem, type BoardState, type ItemLevel, type Order, type SaveGame } from "../types/game";
+import { isCustomerId, isItemLevel, isSpecialVisitorId, type BoardItem, type BoardState, type ItemLevel, type Order, type SaveGame, type SpecialOrder } from "../types/game";
 import { createEmptyBoard } from "./boardSystem";
 
 export const SAVE_KEY = GAME_CONFIG.save.key;
@@ -14,6 +14,10 @@ export function createDefaultSaveGame(): SaveGame {
     discoveries: [],
     orders: createInitialOrders(),
     orderSequence: 3,
+    regularOrdersCompleted: 0,
+    specialOrderSequence: 0,
+    nextSpecialOrderAt: GAME_CONFIG.specialVisit.everyRegularOrders,
+    specialOrder: null,
     buildings: { drawingStudioStage: 0 }
   };
 }
@@ -58,7 +62,37 @@ function migrateSaveGame(value: unknown): SaveGame {
     discoveries: normaliseDiscoveries(value.discoveries),
     orders: normaliseOrders(value.orders, defaults.orders),
     orderSequence: typeof value.orderSequence === "number" && Number.isInteger(value.orderSequence) && value.orderSequence >= 3 ? value.orderSequence : defaults.orderSequence,
+    regularOrdersCompleted: normaliseNonNegativeInteger(value.regularOrdersCompleted, defaults.regularOrdersCompleted),
+    specialOrderSequence: normaliseNonNegativeInteger(value.specialOrderSequence, defaults.specialOrderSequence),
+    nextSpecialOrderAt: normalisePositiveInteger(value.nextSpecialOrderAt, defaults.nextSpecialOrderAt),
+    specialOrder: normaliseSpecialOrder(value.specialOrder),
     buildings: { drawingStudioStage: stage }
+  };
+}
+
+function normaliseNonNegativeInteger(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
+}
+
+function normalisePositiveInteger(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 ? value : fallback;
+}
+
+function normaliseSpecialOrder(value: unknown): SpecialOrder | null {
+  if (!isRecord(value) || typeof value.id !== "string" || !isSpecialVisitorId(value.visitor) || !isItemLevel(value.requestedLevel)) {
+    return null;
+  }
+  if (value.requestedLevel < 5 || value.requestedLevel > 6 || typeof value.expiresAt !== "number" || !Number.isFinite(value.expiresAt)) {
+    return null;
+  }
+  const bonusItemLevels = Array.isArray(value.bonusItemLevels) ? value.bonusItemLevels.filter(isItemLevel).slice(0, 4) : [];
+  if (bonusItemLevels.length === 0) {
+    return null;
+  }
+  return {
+    id: value.id.slice(0, 100), visitor: value.visitor, requestedLevel: value.requestedLevel,
+    quantity: normalisePositiveInteger(value.quantity, 1),
+    coinReward: normaliseNonNegativeInteger(value.coinReward, 0), bonusItemLevels, expiresAt: value.expiresAt
   };
 }
 

@@ -12,6 +12,7 @@ export type BoardSlot = BoardItem | null;
 export type BoardState = BoardSlot[];
 
 export type CustomerId = "mia" | "leo" | "ivy";
+export type SpecialVisitorId = "margo";
 
 export type CustomerDefinition = {
   id: CustomerId;
@@ -29,6 +30,24 @@ export type Order = {
   reward: number;
 };
 
+export type SpecialVisitorDefinition = {
+  id: SpecialVisitorId;
+  name: string;
+  portrait: string;
+  greeting: string;
+  accent: string;
+};
+
+export type SpecialOrder = {
+  id: string;
+  visitor: SpecialVisitorId;
+  requestedLevel: ItemLevel;
+  quantity: number;
+  coinReward: number;
+  bonusItemLevels: ItemLevel[];
+  expiresAt: number;
+};
+
 export type BuildingState = {
   drawingStudioStage: 0 | 1;
 };
@@ -40,6 +59,10 @@ export type SaveGame = {
   discoveries: ItemLevel[];
   orders: Order[];
   orderSequence: number;
+  regularOrdersCompleted: number;
+  specialOrderSequence: number;
+  nextSpecialOrderAt: number;
+  specialOrder: SpecialOrder | null;
   buildings: BuildingState;
 };
 
@@ -54,4 +77,8 @@ export function isItemLevel(value: unknown): value is ItemLevel {
 
 export function isCustomerId(value: unknown): value is CustomerId {
   return value === "mia" || value === "leo" || value === "ivy";
+}
+
+export function isSpecialVisitorId(value: unknown): value is SpecialVisitorId {
+  return value === "margo";
 }

@@ -1,10 +1,11 @@
 import { GAME_CONFIG } from "../config/gameConfig";
 import { createReplacementOrder, createSpecialOrder, specialVisitorById } from "../data/orderData";
+import { unlockedFamilies } from "../data/itemData";
 import { PhaserGame } from "../game/PhaserGame";
 import { addItemsToBoard, removeItemsForOrder } from "../systems/boardSystem";
 import { clearRememberedAccess } from "../utils/access";
 import { createDefaultSaveGame, loadSaveGame, persistSaveGame } from "../systems/saveSystem";
-import type { BoardChangeMeta, BoardState, ItemLevel, SaveGame } from "../types/game";
+import type { BoardChangeMeta, BoardState, ItemFamily, ItemLevel, SaveGame } from "../types/game";
 import { renderTownView } from "./TownView";
 import { StudioView } from "./StudioView";
 
@@ -41,6 +42,8 @@ export class GameApp {
       onBack: () => this.showTown(),
       onDeliver: (orderId) => this.deliverOrder(orderId),
       onDeliverSpecial: () => this.deliverSpecialOrder(),
+      onDeliverMasterpiece: () => this.deliverMasterpieceOrder(),
+      onSelectFamily: (family) => this.selectFamily(family),
       onSpecialExpired: () => this.expireSpecialOrderIfNeeded(),
       onRestore: () => this.restoreStudio(),
       onResetSave: () => this.resetSave()
@@ -48,9 +51,14 @@ export class GameApp {
     this.phaser = new PhaserGame(this.studio.boardElement, this.state.board, {
       onBoardChange: (board, meta) => this.handleBoardChange(board, meta),
       onToast: (message) => this.showToast(message)
-    });
+    }, this.state.activeFamily);
     this.expireSpecialOrderIfNeeded();
     window.setTimeout(() => window.scrollTo(0, 0), 0);
+  }
+
+  private selectFamily(family: ItemFamily): void {
+    if (!unlockedFamilies(this.state.studioLevel).includes(family)) return;
+    this.state.activeFamily = family; persistSaveGame(this.state); this.phaser?.setActiveFamily(family); this.studio?.update(this.state);
   }
 
   private handleBoardChange(board: BoardState, meta: BoardChangeMeta): void {
@@ -60,6 +68,7 @@ export class GameApp {
     }
     if (meta.kind === "merge") {
       this.discover(meta.resultLevel);
+      this.maybeCreateMasterpieceOrder(meta.family);
     }
     persistSaveGame(this.state);
     this.studio?.update(this.state);
@@ -78,11 +87,12 @@ export class GameApp {
     this.state.board = removed.board;
     this.state.coins += order.reward;
     const remaining = this.state.orders.filter((candidate) => candidate.id !== order.id);
-    const replacement = createReplacementOrder(this.state.orderSequence, remaining);
+    const replacement = createReplacementOrder(this.state.orderSequence, remaining, unlockedFamilies(this.state.studioLevel));
     this.state.orderSequence += 1;
     this.state.orders = [...remaining, replacement];
     this.state.regularOrdersCompleted += 1;
     this.maybeCreateSpecialOrder();
+    this.addEarnings(order.reward);
     persistSaveGame(this.state);
     this.phaser?.syncBoard(this.state.board);
     this.studio?.update(this.state);
@@ -90,9 +100,38 @@ export class GameApp {
     this.studio?.showFeedback(`${order.customer === "mia" ? "Mia" : order.customer === "leo" ? "Leo" : "Ivy"} loved it. +${order.reward} coins!`, "success");
   }
 
+  private addEarnings(amount: number): void {
+    this.state.lifetimeCoins += amount;
+    const nextLevel = this.state.lifetimeCoins >= GAME_CONFIG.progression.levelThreeCoins ? 3 : this.state.lifetimeCoins >= GAME_CONFIG.progression.levelTwoCoins ? 2 : 1;
+    if (nextLevel > this.state.studioLevel) {
+      this.state.studioLevel = nextLevel as 1 | 2 | 3;
+      this.state.activeFamily = nextLevel === 2 ? "collage" : "prints";
+      this.phaser?.setActiveFamily(this.state.activeFamily);
+      this.showToast(`${nextLevel === 2 ? "Paper Collage" : "Little Prints"} is now open in the studio!`, "success");
+    }
+  }
+
+  private maybeCreateMasterpieceOrder(family: ItemFamily): void {
+    if (this.state.masterpieceOrder || this.state.board.filter((item) => item?.family === family && item.level === 7).length < GAME_CONFIG.progression.masterpieceQuantity) return;
+    const rewards: Record<ItemFamily, number> = { drawing: 460, collage: 650, prints: 860 };
+    this.state.masterpieceOrder = { id: `collector-${this.state.masterpieceOrderSequence + 1}`, family, quantity: 2, reward: rewards[family] };
+    this.state.masterpieceOrderSequence += 1;
+    this.showToast("A collector has made an offer for two masterpieces!", "success");
+  }
+
+  private deliverMasterpieceOrder(): void {
+    const order = this.state.masterpieceOrder;
+    if (!order) return;
+    const removed = removeItemsForOrder(this.state.board, 7, order.quantity, order.family);
+    if (!removed) return;
+    this.state.board = removed.board; this.state.coins += order.reward; this.addEarnings(order.reward); this.state.masterpieceOrder = null;
+    persistSaveGame(this.state); this.phaser?.syncBoard(this.state.board); this.studio?.update(this.state); this.studio?.animateCoins();
+    this.studio?.showFeedback(`Collector's sale complete. +${order.reward} coins for the village!`, "success");
+  }
+
   private maybeCreateSpecialOrder(): void {
     if (this.state.specialOrder || this.state.regularOrdersCompleted < this.state.nextSpecialOrderAt) return;
-    this.state.specialOrder = createSpecialOrder(this.state.specialOrderSequence, this.state.buildings.drawingStudioStage === 1);
+    this.state.specialOrder = createSpecialOrder(this.state.specialOrderSequence, this.state.buildings.drawingStudioStage === 1, this.state.activeFamily);
     this.state.specialOrderSequence += 1;
     this.state.nextSpecialOrderAt += GAME_CONFIG.specialVisit.everyRegularOrders;
     this.showToast("A travelling curator has arrived with a special request!", "success");
@@ -105,7 +144,7 @@ export class GameApp {
       this.expireSpecialOrderIfNeeded();
       return;
     }
-    const removed = removeItemsForOrder(this.state.board, order.requestedLevel, order.quantity);
+    const removed = removeItemsForOrder(this.state.board, order.requestedLevel, order.quantity, order.family);
     if (!removed) {
       this.showToast("Margo is still waiting for that special piece.");
       return;
@@ -134,8 +173,8 @@ export class GameApp {
     this.showToast("Margo has continued on her travels. Another visit will come by.");
   }
 
-  private createRewardItem(level: ItemLevel) {
-    return { id: `reward-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, level, createdAt: Date.now() };
+  private createRewardItem(level: ItemLevel): import("../types/game").BoardItem {
+    return { id: `reward-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, family: "drawing", level, createdAt: Date.now() };
   }
 
   private restoreStudio(): void {

@@ -1,5 +1,5 @@
 import { BOARD_SIZE, PRODUCER_SLOT } from "../config/gameConfig";
-import type { BoardItem, BoardState, ItemLevel } from "../types/game";
+import type { BoardItem, BoardState, ItemFamily, ItemLevel } from "../types/game";
 
 export function createEmptyBoard(): BoardState {
   return Array.from({ length: BOARD_SIZE }, () => null);
@@ -14,7 +14,7 @@ export function nextItemLevel(level: ItemLevel): ItemLevel | null {
 }
 
 export function canMerge(first: BoardItem | null, second: BoardItem | null): boolean {
-  return Boolean(first && second && first.level === second.level && first.level < 7);
+  return Boolean(first && second && first.family === second.family && first.level === second.level && first.level < 7);
 }
 
 export function findFreeSlots(board: BoardState): number[] {
@@ -32,8 +32,8 @@ export function findFirstItemAtLevel(board: BoardState, level: ItemLevel): numbe
   return index === -1 ? null : index;
 }
 
-export function countItemsAtLevel(board: BoardState, level: ItemLevel): number {
-  return board.reduce((count, item, index) => count + (index !== PRODUCER_SLOT && item?.level === level ? 1 : 0), 0);
+export function countItemsAtLevel(board: BoardState, level: ItemLevel, family?: ItemFamily): number {
+  return board.reduce((count, item, index) => count + (index !== PRODUCER_SLOT && item?.level === level && (!family || item.family === family) ? 1 : 0), 0);
 }
 
 export function moveItem(board: BoardState, from: number, to: number): BoardState | null {
@@ -74,9 +74,9 @@ export function mergeItems(
   return { board: next, resultLevel };
 }
 
-export function removeItemsForOrder(board: BoardState, level: ItemLevel, quantity: number): { board: BoardState; removed: number[] } | null {
+export function removeItemsForOrder(board: BoardState, level: ItemLevel, quantity: number, family?: ItemFamily): { board: BoardState; removed: number[] } | null {
   const available = board
-    .map((item, index) => (index !== PRODUCER_SLOT && item?.level === level ? index : -1))
+    .map((item, index) => (index !== PRODUCER_SLOT && item?.level === level && (!family || item.family === family) ? index : -1))
     .filter((index) => index >= 0);
   if (available.length < quantity) {
     return null;
@@ -112,8 +112,9 @@ export function addItemsToBoard(
 
 export function produceItem(
   board: BoardState,
+  family: ItemFamily,
   random: () => number,
-  createItem: (level: ItemLevel) => BoardItem
+  createItem: (level: ItemLevel, family: ItemFamily) => BoardItem
 ): { board: BoardState; slot: number; level: ItemLevel } | null {
   const freeSlots = findFreeSlots(board);
   const slot = freeSlots[0];
@@ -122,7 +123,7 @@ export function produceItem(
   }
   const level: ItemLevel = random() < 0.2 ? 2 : 1;
   const next = cloneBoard(board);
-  next[slot] = createItem(level);
+  next[slot] = createItem(level, family);
   return { board: next, slot, level };
 }
 

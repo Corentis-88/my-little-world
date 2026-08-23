@@ -19,8 +19,9 @@ export const GAME_CONFIG = {
     durationMs: 15 * 60 * 1000,
     fallbackCoinsPerSupply: 15
   },
+  progression: { levelTwoCoins: 180, levelThreeCoins: 650, masterpieceQuantity: 2 },
   save: {
-    version: 2,
+    version: 3,
     key: "my-little-world-save-v1",
     accessKey: "my-little-world-access"
   },

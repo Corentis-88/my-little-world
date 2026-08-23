@@ -1,6 +1,6 @@
 import { BOARD_SIZE, GAME_CONFIG, PRODUCER_SLOT } from "../config/gameConfig";
 import { createInitialOrders } from "../data/orderData";
-import { isCustomerId, isItemLevel, isSpecialVisitorId, type BoardItem, type BoardState, type ItemLevel, type Order, type SaveGame, type SpecialOrder } from "../types/game";
+import { isCustomerId, isItemFamily, isItemLevel, isSpecialVisitorId, type BoardItem, type BoardState, type ItemLevel, type Order, type SaveGame, type SpecialOrder } from "../types/game";
 import { createEmptyBoard } from "./boardSystem";
 
 export const SAVE_KEY = GAME_CONFIG.save.key;
@@ -10,6 +10,9 @@ export function createDefaultSaveGame(): SaveGame {
   return {
     version: SAVE_VERSION,
     coins: 0,
+    lifetimeCoins: 0,
+    studioLevel: 1,
+    activeFamily: "drawing",
     board: createEmptyBoard(),
     discoveries: [],
     orders: createInitialOrders(),
@@ -18,6 +21,8 @@ export function createDefaultSaveGame(): SaveGame {
     specialOrderSequence: 0,
     nextSpecialOrderAt: GAME_CONFIG.specialVisit.everyRegularOrders,
     specialOrder: null,
+    masterpieceOrderSequence: 0,
+    masterpieceOrder: null,
     buildings: { drawingStudioStage: 0 }
   };
 }
@@ -58,6 +63,9 @@ function migrateSaveGame(value: unknown): SaveGame {
   return {
     version: SAVE_VERSION,
     coins: typeof value.coins === "number" && Number.isFinite(value.coins) && value.coins >= 0 ? Math.floor(value.coins) : defaults.coins,
+    lifetimeCoins: normaliseNonNegativeInteger(value.lifetimeCoins, 0),
+    studioLevel: value.studioLevel === 2 || value.studioLevel === 3 ? value.studioLevel : 1,
+    activeFamily: isItemFamily(value.activeFamily) ? value.activeFamily : "drawing",
     board: normaliseBoard(value.board),
     discoveries: normaliseDiscoveries(value.discoveries),
     orders: normaliseOrders(value.orders, defaults.orders),
@@ -66,6 +74,8 @@ function migrateSaveGame(value: unknown): SaveGame {
     specialOrderSequence: normaliseNonNegativeInteger(value.specialOrderSequence, defaults.specialOrderSequence),
     nextSpecialOrderAt: normalisePositiveInteger(value.nextSpecialOrderAt, defaults.nextSpecialOrderAt),
     specialOrder: normaliseSpecialOrder(value.specialOrder),
+    masterpieceOrderSequence: normaliseNonNegativeInteger(value.masterpieceOrderSequence, 0),
+    masterpieceOrder: null,
     buildings: { drawingStudioStage: stage }
   };
 }
@@ -90,7 +100,7 @@ function normaliseSpecialOrder(value: unknown): SpecialOrder | null {
     return null;
   }
   return {
-    id: value.id.slice(0, 100), visitor: value.visitor, requestedLevel: value.requestedLevel,
+    id: value.id.slice(0, 100), visitor: value.visitor, family: isItemFamily(value.family) ? value.family : "drawing", requestedLevel: value.requestedLevel,
     quantity: normalisePositiveInteger(value.quantity, 1),
     coinReward: normaliseNonNegativeInteger(value.coinReward, 0), bonusItemLevels, expiresAt: value.expiresAt
   };
@@ -117,6 +127,7 @@ function normaliseBoardItem(value: unknown): BoardItem | null {
   }
   return {
     id: value.id.slice(0, 100),
+    family: isItemFamily(value.family) ? value.family : "drawing",
     level: value.level,
     createdAt: typeof value.createdAt === "number" && Number.isFinite(value.createdAt) ? value.createdAt : Date.now()
   };
@@ -143,6 +154,7 @@ function normaliseOrders(value: unknown, fallback: Order[]): Order[] {
     return {
       id: entry.id.slice(0, 100),
       customer: entry.customer,
+      family: isItemFamily(entry.family) ? entry.family : "drawing",
       requestedLevel: entry.requestedLevel,
       quantity: typeof entry.quantity === "number" && entry.quantity > 0 ? Math.min(3, Math.floor(entry.quantity)) : 1,
       reward: typeof entry.reward === "number" && entry.reward >= 0 ? Math.floor(entry.reward) : 0

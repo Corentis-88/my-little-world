@@ -1,6 +1,6 @@
 import { GAME_CONFIG } from "../config/gameConfig";
 import type { CustomerDefinition, SpecialVisitorDefinition } from "../types/game";
-import type { CustomerId, ItemLevel, Order, SpecialOrder, SpecialVisitorId } from "../types/game";
+import type { CustomerId, ItemFamily, ItemLevel, Order, SpecialOrder, SpecialVisitorId } from "../types/game";
 
 export const CUSTOMERS = [
   { id: "mia", name: "Mia", portrait: "portrait-mia.svg", greeting: "Something sunny, please?", accent: "#d77962" },
@@ -48,7 +48,7 @@ export function createInitialOrders(): Order[] {
   ];
 }
 
-export function createReplacementOrder(sequence: number, active: readonly Order[]): Order {
+export function createReplacementOrder(sequence: number, active: readonly Order[], families: readonly ItemFamily[] = ["drawing"]): Order {
   const customer = CUSTOMERS[sequence % CUSTOMERS.length];
   const plannedLevel = ORDER_LEVEL_PLAN[sequence % ORDER_LEVEL_PLAN.length] ?? 2;
   const occupiedLevels = new Set(active.map((order) => order.requestedLevel));
@@ -56,15 +56,18 @@ export function createReplacementOrder(sequence: number, active: readonly Order[
   const level = occupiedLevels.has(plannedLevel)
     ? (fallbackLevels.find((candidate) => !occupiedLevels.has(candidate)) ?? plannedLevel)
     : plannedLevel;
-  return createOrder(`order-${sequence + 1}`, customer?.id ?? "mia", level);
+  return createOrder(`order-${sequence + 1}`, customer?.id ?? "mia", level, families[sequence % families.length] ?? "drawing");
 }
 
-export function createSpecialOrder(sequence: number, restored: boolean, now = Date.now()): SpecialOrder {
+export function createSpecialOrder(sequence: number, restored: boolean, familyOrNow: ItemFamily | number = "drawing", maybeNow = Date.now()): SpecialOrder {
+  const family = typeof familyOrNow === "string" ? familyOrNow : "drawing";
+  const now = typeof familyOrNow === "number" ? familyOrNow : maybeNow;
   const requestedLevel: ItemLevel = restored || sequence % 2 === 1 ? 6 : 5;
   const bonusItemLevels: ItemLevel[] = requestedLevel === 5 ? [2, 2, 3] : [3, 3, 4];
   return {
     id: `visitor-${sequence + 1}`,
     visitor: "margo",
+    family,
     requestedLevel,
     quantity: 1,
     coinReward: requestedLevel === 5 ? 140 : 240,
@@ -73,10 +76,11 @@ export function createSpecialOrder(sequence: number, restored: boolean, now = Da
   };
 }
 
-function createOrder(id: string, customer: CustomerId, requestedLevel: 2 | 3 | 4 | 5 | 6): Order {
+function createOrder(id: string, customer: CustomerId, requestedLevel: 2 | 3 | 4 | 5 | 6, family: ItemFamily = "drawing"): Order {
   return {
     id,
     customer,
+    family,
     requestedLevel: requestedLevel as ItemLevel,
     quantity: 1,
     reward: REWARD_BY_LEVEL[requestedLevel]

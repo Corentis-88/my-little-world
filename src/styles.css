@@ -470,6 +470,12 @@ h3 {
   font-style: italic;
 }
 
+.village-progress { display:flex; justify-content:space-between; gap:8px; margin-top:11px; padding:7px 9px; border-radius:12px; background:rgba(255,250,231,.72); color:#718071; font-size:10px; }
+.village-growth { display:flex; gap:10px; margin:0 16px 16px; padding:12px; border-radius:18px; background:rgba(255,248,225,.82); border:1px solid rgba(112,140,107,.18); }
+.village-growth > span { display:grid; width:38px; height:38px; place-items:center; flex:0 0 38px; border-radius:13px; background:#dce8c9; color:#75966d; font-size:20px; }
+.village-growth.stage-2 > span { background:#d6eee1; color:#5f9a82; }.village-growth.stage-3 > span { background:#f7d8b8; color:#bd765a; }
+.village-growth h2 { margin-top:2px; color:#566655; font-size:15px; }.village-growth p:last-child { margin-top:3px; color:#82917b; font-size:10px; }
+
 .studio-town-card {
   position: relative;
   z-index: 2;
@@ -1007,6 +1013,7 @@ h3 {
 .board-section {
   margin-top: 8px;
 }
+.family-switcher { display:flex; gap:5px; margin:-4px 4px 7px; }.family-button { min-height:27px; padding:0 8px; border-radius:9px; color:#82917b; background:#eee3c8; font-size:9px; font-weight:800; }.family-button.is-active { color:#fff9e7; background:var(--mint); }
 
 .board-shell {
   position: relative;

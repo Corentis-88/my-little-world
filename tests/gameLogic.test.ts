@@ -4,13 +4,14 @@ import { createSpecialOrder } from "../src/data/orderData";
 import { createDefaultSaveGame, deserializeSaveGame, serializeSaveGame } from "../src/systems/saveSystem";
 import type { BoardItem } from "../src/types/game";
 
-const item = (level: BoardItem["level"], id = `test-${level}`): BoardItem => ({ id, level, createdAt: 1 });
+const item = (level: BoardItem["level"], id = `test-${level}`): BoardItem => ({ id, family: "drawing", level, createdAt: 1 });
 
 describe("merge board rules", () => {
   it("only allows two matching non-max items to merge", () => {
     expect(canMerge(item(1), item(1))).toBe(true);
     expect(canMerge(item(1), item(2))).toBe(false);
     expect(canMerge(item(7), item(7))).toBe(false);
+    expect(canMerge(item(1, "drawing"), { ...item(1, "collage"), family: "collage" })).toBe(false);
   });
 
   it("creates the next level without losing the other board slots", () => {

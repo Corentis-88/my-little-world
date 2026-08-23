@@ -1,3 +1,4 @@
+import { GAME_CONFIG } from "../config/gameConfig";
 import { FUTURE_BUILDINGS } from "../data/buildingData";
 import type { SaveGame } from "../types/game";
 import { assetUrl } from "../utils/assets";
@@ -10,6 +11,7 @@ export type TownViewHandlers = {
 
 export function renderTownView(host: HTMLElement, save: SaveGame, handlers: TownViewHandlers): void {
   const restored = save.buildings.drawingStudioStage === 1;
+  const nextCoins = save.studioLevel === 1 ? GAME_CONFIG.progression.levelTwoCoins : GAME_CONFIG.progression.levelThreeCoins;
   host.innerHTML = `
     <main class="town-screen">
       <header class="topbar town-topbar">
@@ -25,6 +27,7 @@ export function renderTownView(host: HTMLElement, save: SaveGame, handlers: Town
           <p class="eyebrow">A small beginning</p>
           <h1 id="town-title">Your little world</h1>
           <p>There is always something waiting to be made.</p>
+          <div class="village-progress"><strong>Village level ${save.studioLevel}</strong><span>${save.studioLevel === 3 ? "The little world is glowing." : `${Math.min(save.lifetimeCoins, nextCoins)} / ${nextCoins} lifetime coins`}</span></div>
         </div>
         <div class="studio-town-card ${restored ? "is-restored" : ""}">
           <div class="building-status"><span class="status-dot"></span> OPEN</div>
@@ -38,6 +41,7 @@ export function renderTownView(host: HTMLElement, save: SaveGame, handlers: Town
           <div class="mystery-moon">☾</div><div class="mystery-board"></div><span>???</span>
         </div>
       </section>
+      <section class="village-growth stage-${save.studioLevel}"><span>✦</span><div><p class="eyebrow">Village growth</p><h2>${save.studioLevel === 1 ? "A quiet beginning" : save.studioLevel === 2 ? "The paper garden is blooming" : "The gallery lane is alive"}</h2><p>${save.studioLevel === 1 ? "Deliver requests to invite more colour into town." : save.studioLevel === 2 ? "New cut-paper bunting and gardens have appeared." : "Prints, lanterns and a little gallery now brighten the lane."}</p></div></section>
       <section class="future-section" aria-labelledby="future-title">
         <div class="section-heading"><div><p class="eyebrow">The town is growing</p><h2 id="future-title">More little places</h2></div><span class="town-map-mark">01</span></div>
         <div class="future-grid">${FUTURE_BUILDINGS.map((building) => renderBuildingTease(building)).join("")}</div>

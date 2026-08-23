@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { GAME_CONFIG, PRODUCER_SLOT } from "../config/gameConfig";
 import { ITEM_DEFINITIONS } from "../data/itemData";
 import { mergeItems, moveItem, produceItem } from "../systems/boardSystem";
-import type { BoardChangeMeta, BoardState, ItemLevel } from "../types/game";
+import type { BoardChangeMeta, BoardState, ItemFamily, ItemLevel } from "../types/game";
 import { assetUrl } from "../utils/assets";
 
 export type MergeGameCallbacks = {
@@ -20,7 +20,7 @@ export class PhaserGame {
   private readonly blockNativePress: (event: Event) => void;
   private readonly parent: HTMLElement;
 
-  public constructor(parent: HTMLElement, board: BoardState, callbacks: MergeGameCallbacks) {
+  public constructor(parent: HTMLElement, board: BoardState, callbacks: MergeGameCallbacks, activeFamily: ItemFamily = "drawing") {
     this.parent = parent;
     this.blockNativePress = (event) => event.preventDefault();
     parent.style.setProperty("-webkit-touch-callout", "none");
@@ -47,7 +47,7 @@ export class PhaserGame {
       input: {
         activePointers: 2
       },
-      scene: [new MergeScene(board, callbacks)
+      scene: [new MergeScene(board, callbacks, activeFamily)
       ]
     });
   }
@@ -57,6 +57,11 @@ export class PhaserGame {
     if (scene instanceof MergeScene) {
       scene.syncBoard(board);
     }
+  }
+
+  public setActiveFamily(family: ItemFamily): void {
+    const scene = this.game.scene.getScene("MergeScene");
+    if (scene instanceof MergeScene) scene.setActiveFamily(family);
   }
 
   public destroy(): void {
@@ -75,12 +80,14 @@ class MergeScene extends Phaser.Scene {
   private targetGraphics?: Phaser.GameObjects.Graphics;
   private producerSprite?: Phaser.GameObjects.Image;
   private dragState: DragState | null = null;
+  private activeFamily: ItemFamily;
   private readonly reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  public constructor(board: BoardState, callbacks: MergeGameCallbacks) {
+  public constructor(board: BoardState, callbacks: MergeGameCallbacks, activeFamily: ItemFamily) {
     super({ key: "MergeScene" });
     this.board = board;
     this.callbacks = callbacks;
+    this.activeFamily = activeFamily;
   }
 
   public preload(): void {
@@ -107,6 +114,8 @@ class MergeScene extends Phaser.Scene {
       this.renderItems();
     }
   }
+
+  public setActiveFamily(family: ItemFamily): void { this.activeFamily = family; }
 
   private drawBoard(): void {
     const graphics = this.boardGraphics;
@@ -162,14 +171,14 @@ class MergeScene extends Phaser.Scene {
   }
 
   private produce(): void {
-    const result = produceItem(this.board, Math.random, (level) => this.createBoardItem(level));
+    const result = produceItem(this.board, this.activeFamily, Math.random, (level, family) => this.createBoardItem(level, family));
     if (!result) {
       this.callbacks.onToast("The studio is full — make a little room first.");
       this.pulseProducer();
       return;
     }
     this.board = result.board;
-    this.callbacks.onBoardChange(this.board, { kind: "produce", producedLevel: result.level });
+    this.callbacks.onBoardChange(this.board, { kind: "produce", producedLevel: result.level, family: this.activeFamily });
     this.renderItems();
     const sprite = this.itemSprites.get(result.slot);
     if (sprite) {
@@ -237,14 +246,15 @@ class MergeScene extends Phaser.Scene {
       this.returnSprite(gameObject, origin);
       return;
     }
-    const merged = mergeItems(this.board, origin, target, (level) => this.createBoardItem(level));
+    const source = this.board[origin];
+    const merged = mergeItems(this.board, origin, target, (level) => this.createBoardItem(level, source?.family ?? "drawing"));
     if (!merged) {
-      this.callbacks.onToast("Those two need a matching colour to join.");
+      this.callbacks.onToast(source?.level === 7 && source.family === targetItem?.family ? "That masterpiece is already at MAX level." : "Only matching items can merge.");
       this.returnSprite(gameObject, origin);
       return;
     }
     this.board = merged.board;
-    this.callbacks.onBoardChange(this.board, { kind: "merge", from: origin, to: target, resultLevel: merged.resultLevel });
+    this.callbacks.onBoardChange(this.board, { kind: "merge", from: origin, to: target, resultLevel: merged.resultLevel, family: source?.family ?? "drawing" });
     this.renderItems();
     const resultSprite = this.itemSprites.get(target);
     if (resultSprite) {
@@ -331,9 +341,10 @@ class MergeScene extends Phaser.Scene {
     return null;
   }
 
-  private createBoardItem(level: ItemLevel) {
+  private createBoardItem(level: ItemLevel, family: ItemFamily) {
     return {
       id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      family,
       level,
       createdAt: Date.now()
     };

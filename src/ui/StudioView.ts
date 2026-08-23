@@ -1,5 +1,5 @@
 import { GAME_CONFIG } from "../config/gameConfig";
-import { ITEM_BY_LEVEL } from "../data/itemData";
+import { FAMILY_LABELS, itemFor, ITEM_BY_LEVEL, unlockedFamilies } from "../data/itemData";
 import { customerById, specialVisitorById } from "../data/orderData";
 import { countItemsAtLevel } from "../systems/boardSystem";
 import type { Order, SaveGame, SpecialOrder } from "../types/game";
@@ -9,6 +9,8 @@ export type StudioViewHandlers = {
   onBack: () => void;
   onDeliver: (orderId: string) => void;
   onDeliverSpecial: () => void;
+  onDeliverMasterpiece: () => void;
+  onSelectFamily: (family: import("../types/game").ItemFamily) => void;
   onSpecialExpired: () => void;
   onRestore: () => void;
   onResetSave: () => void;
@@ -42,8 +44,9 @@ export class StudioView {
           <div class="orders-list"></div>
         </section>
         <section class="visitor-section" aria-live="polite"></section>
+        <section class="masterpiece-section" aria-live="polite"></section>
         <section class="board-section" aria-labelledby="board-title">
-          <div class="board-heading"><div><p class="eyebrow">Make a little magic</p><h2 id="board-title">The artist's desk</h2></div><span class="board-tip">drag to merge</span></div>
+          <div class="board-heading"><div><p class="eyebrow">Make a little magic</p><h2 id="board-title">The artist's desk</h2></div><span class="board-tip">drag to merge</span></div><div class="family-switcher"></div>
           <div class="board-shell"><div class="phaser-mount"></div><div class="board-instruction"><span class="instruction-spark">✦</span> Tap the desk to draw</div></div>
         </section>
         <section class="restore-panel" aria-labelledby="restore-title">
@@ -75,8 +78,17 @@ export class StudioView {
     this.coinValue.textContent = `${save.coins}`;
     this.host.querySelector<HTMLElement>(".studio-coin")?.setAttribute("aria-label", `${save.coins} coins`);
     this.renderOrders(save);
+    this.renderFamilySwitcher(save);
     this.renderSpecialOrder(save);
+    this.renderMasterpieceOrder(save);
     this.renderRestoration(save);
+  }
+
+  private renderFamilySwitcher(save: SaveGame): void {
+    const host = this.host.querySelector<HTMLElement>(".family-switcher");
+    if (!host) return;
+    host.innerHTML = unlockedFamilies(save.studioLevel).map((family) => `<button type="button" class="family-button ${family === save.activeFamily ? "is-active" : ""}" data-family="${family}">${FAMILY_LABELS[family]}</button>`).join("");
+    host.querySelectorAll<HTMLButtonElement>("[data-family]").forEach((button) => button.addEventListener("click", () => this.handlers.onSelectFamily(button.dataset.family as import("../types/game").ItemFamily)));
   }
 
   public destroy(): void {
@@ -115,8 +127,8 @@ export class StudioView {
 
   private renderOrder(order: Order, save: SaveGame): string {
     const customer = customerById(order.customer);
-    const item = ITEM_BY_LEVEL[order.requestedLevel];
-    const ready = countItemsAtLevel(save.board, order.requestedLevel) >= order.quantity;
+    const item = itemFor(order.family, order.requestedLevel);
+    const ready = countItemsAtLevel(save.board, order.requestedLevel, order.family) >= order.quantity;
     return `
       <article class="order-card ${ready ? "is-ready" : ""}">
         <img class="customer-portrait" src="${assetUrl(customer.portrait)}" alt="${customer.name}" />
@@ -124,6 +136,16 @@ export class StudioView {
         <div class="order-action"><span class="reward"><img src="${assetUrl("coin.svg")}" alt="" />+${order.reward}</span><button class="deliver-button" type="button" data-deliver="${order.id}" ${ready ? "" : "disabled"}>${ready ? "Deliver ✦" : "Make it"}</button></div>
       </article>
     `;
+  }
+
+  private renderMasterpieceOrder(save: SaveGame): void {
+    const host = this.host.querySelector<HTMLElement>(".masterpiece-section");
+    const order = save.masterpieceOrder;
+    if (!host || !order) { if (host) host.innerHTML = ""; return; }
+    const item = itemFor(order.family, 7);
+    const ready = countItemsAtLevel(save.board, 7, order.family) >= 2;
+    host.innerHTML = `<article class="visitor-card ${ready ? "is-ready" : ""}"><div class="visitor-label">✦ Collector's offer <span>MAX pieces</span></div><div class="visitor-main"><div class="visitor-portrait">✦</div><div class="visitor-copy"><div class="order-name"><strong>Village Collector</strong><span>Two ${item.name}s for the town gallery.</span></div><div class="order-request"><img src="${assetUrl(item.asset)}" alt="${item.name}" /><span>${item.name} ×2</span></div></div><button class="deliver-button visitor-button" type="button" data-deliver-masterpiece ${ready ? "" : "disabled"}>${ready ? "Sell ✦" : "Keep making"}</button></div><div class="visitor-rewards"><span><img src="${assetUrl("coin.svg")}" alt="" />+${order.reward}</span><span>unlocks village growth</span></div></article>`;
+    host.querySelector<HTMLButtonElement>("[data-deliver-masterpiece]")?.addEventListener("click", this.handlers.onDeliverMasterpiece);
   }
 
   private renderSpecialOrder(save: SaveGame): void {
@@ -140,7 +162,7 @@ export class StudioView {
         this.handlers.onSpecialExpired();
         return;
       }
-      const ready = countItemsAtLevel(save.board, order.requestedLevel) >= order.quantity;
+      const ready = countItemsAtLevel(save.board, order.requestedLevel, order.family) >= order.quantity;
       this.visitorHost.innerHTML = this.renderSpecialOrderCard(order, ready, secondsLeft);
       this.visitorHost.querySelector<HTMLButtonElement>("[data-deliver-special]")?.addEventListener("click", this.handlers.onDeliverSpecial);
     };
@@ -150,7 +172,7 @@ export class StudioView {
 
   private renderSpecialOrderCard(order: SpecialOrder, ready: boolean, secondsLeft: number): string {
     const visitor = specialVisitorById(order.visitor);
-    const item = ITEM_BY_LEVEL[order.requestedLevel];
+    const item = itemFor(order.family, order.requestedLevel);
     const time = secondsLeft <= 0 ? "Leaving now" : formatTime(secondsLeft);
     return `
       <article class="visitor-card ${ready ? "is-ready" : ""}">

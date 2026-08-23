@@ -1,5 +1,5 @@
 import type { ItemDefinition } from "../types/content";
-import type { ItemLevel } from "../types/game";
+import type { ItemFamily, ItemLevel } from "../types/game";
 
 export const ITEM_DEFINITIONS: readonly ItemDefinition[] = [
   { level: 1, name: "Pencil", asset: "pencil.svg", color: "#e9b760", hint: "A tiny beginning" },
@@ -16,3 +16,22 @@ export const ITEM_BY_LEVEL: Record<ItemLevel, ItemDefinition> = Object.fromEntri
 ) as Record<ItemLevel, ItemDefinition>;
 
 export const itemName = (level: ItemLevel): string => ITEM_BY_LEVEL[level].name;
+
+const FAMILY_NAMES: Record<ItemFamily, readonly string[]> = {
+  drawing: ITEM_DEFINITIONS.map((item) => item.name),
+  collage: ["Paper Snips", "Pattern Pieces", "Glue Pot", "Paper Garden", "Collage Scene", "Story Panel", "Paper Masterpiece"],
+  prints: ["Ink Dot", "Carved Stamp", "Ink Roller", "Printed Tile", "Mini Poster", "Gallery Print", "Ink Masterpiece"]
+};
+
+export const FAMILY_LABELS: Record<ItemFamily, string> = { drawing: "Drawing", collage: "Paper Collage", prints: "Little Prints" };
+export const FAMILY_UNLOCK_LEVEL: Record<ItemFamily, 1 | 2 | 3> = { drawing: 1, collage: 2, prints: 3 };
+export const FAMILY_ACCENT: Record<ItemFamily, string> = { drawing: "#d77962", collage: "#6f9992", prints: "#7f79a6" };
+
+export function itemFor(family: ItemFamily, level: ItemLevel): ItemDefinition {
+  const base = ITEM_BY_LEVEL[level];
+  return { ...base, name: FAMILY_NAMES[family][level - 1] ?? base.name, color: family === "drawing" ? base.color : FAMILY_ACCENT[family] };
+}
+
+export function unlockedFamilies(studioLevel: number): ItemFamily[] {
+  return (Object.keys(FAMILY_UNLOCK_LEVEL) as ItemFamily[]).filter((family) => FAMILY_UNLOCK_LEVEL[family] <= studioLevel);
+}

@@ -163,6 +163,8 @@ class MergeScene extends Phaser.Scene {
       }
       const { x, y } = this.cellCenter(index);
       const sprite = this.add.image(x, y, `item-${item.level}`).setDisplaySize(72, 72).setDepth(10);
+      if (item.family === "collage") sprite.setTint(0x8fc9b3);
+      if (item.family === "prints") sprite.setTint(0xa99bd2);
       sprite.setInteractive({ useHandCursor: true });
       this.input.setDraggable(sprite);
       sprite.setData("slot", index);

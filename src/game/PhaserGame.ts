@@ -7,6 +7,7 @@ import { assetUrl } from "../utils/assets";
 
 export type MergeGameCallbacks = {
   onBoardChange: (board: BoardState, meta: BoardChangeMeta) => void;
+  onProducerMove: (slot: number) => void;
   onToast: (message: string) => void;
 };
 
@@ -20,7 +21,7 @@ export class PhaserGame {
   private readonly blockNativePress: (event: Event) => void;
   private readonly parent: HTMLElement;
 
-  public constructor(parent: HTMLElement, board: BoardState, callbacks: MergeGameCallbacks, activeFamily: ItemFamily = "drawing") {
+  public constructor(parent: HTMLElement, board: BoardState, callbacks: MergeGameCallbacks, activeFamily: ItemFamily = "drawing", producerSlot = PRODUCER_SLOT) {
     this.parent = parent;
     this.blockNativePress = (event) => event.preventDefault();
     parent.style.setProperty("-webkit-touch-callout", "none");
@@ -47,7 +48,7 @@ export class PhaserGame {
       input: {
         activePointers: 2
       },
-      scene: [new MergeScene(board, callbacks, activeFamily)
+      scene: [new MergeScene(board, callbacks, activeFamily, producerSlot)
       ]
     });
   }
@@ -81,13 +82,16 @@ class MergeScene extends Phaser.Scene {
   private producerSprite?: Phaser.GameObjects.Image;
   private dragState: DragState | null = null;
   private activeFamily: ItemFamily;
+  private producerSlot: number;
+  private producerWasDragged = false;
   private readonly reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  public constructor(board: BoardState, callbacks: MergeGameCallbacks, activeFamily: ItemFamily) {
+  public constructor(board: BoardState, callbacks: MergeGameCallbacks, activeFamily: ItemFamily, producerSlot: number) {
     super({ key: "MergeScene" });
     this.board = board;
     this.callbacks = callbacks;
     this.activeFamily = activeFamily;
+    this.producerSlot = producerSlot;
   }
 
   public preload(): void {
@@ -129,22 +133,27 @@ class MergeScene extends Phaser.Scene {
     graphics.strokeRoundedRect(13, 9, 674, 866, 34);
     for (let index = 0; index < this.board.length; index += 1) {
       const { x, y } = this.cellCenter(index);
-      const empty = index !== PRODUCER_SLOT && this.board[index] === null;
+      const empty = index !== this.producerSlot && this.board[index] === null;
       graphics.fillStyle(empty ? 0xf2dfbd : 0xecd4aa, empty ? 0.58 : 0.38);
       graphics.fillRoundedRect(x - 39, y - 39, 78, 78, 20);
       graphics.lineStyle(2, 0xe2c69b, empty ? 0.38 : 0.18);
       graphics.strokeRoundedRect(x - 39, y - 39, 78, 78, 20);
     }
-    const producer = this.cellCenter(PRODUCER_SLOT);
+    const producer = this.cellCenter(this.producerSlot);
     graphics.fillStyle(0xd3af79, 0.28);
     graphics.fillRoundedRect(producer.x - 40, producer.y - 40, 80, 80, 20);
   }
 
   private createProducer(): void {
-    const { x, y } = this.cellCenter(PRODUCER_SLOT);
-    this.producerSprite = this.add.image(x, y - 5, "artist-desk").setDisplaySize(82, 68).setDepth(8);
+    const { x, y } = this.cellCenter(this.producerSlot);
+    this.producerSprite = this.add.image(x, y, "artist-desk").setDisplaySize(62, 62).setDepth(8);
     this.producerSprite.setInteractive({ useHandCursor: true });
-    this.producerSprite.on(Phaser.Input.Events.POINTER_DOWN, () => this.produce());
+    this.input.setDraggable(this.producerSprite);
+    this.producerSprite.setData("producer", true);
+    this.producerSprite.on(Phaser.Input.Events.POINTER_DOWN, () => { this.producerWasDragged = false; });
+    this.producerSprite.on(Phaser.Input.Events.POINTER_UP, () => {
+      if (!this.producerWasDragged) this.produce();
+    });
   }
 
   private bindDragEvents(): void {
@@ -158,7 +167,7 @@ class MergeScene extends Phaser.Scene {
     this.itemSprites.clear();
     for (let index = 0; index < this.board.length; index += 1) {
       const item = this.board[index];
-      if (!item || index === PRODUCER_SLOT) {
+      if (!item || index === this.producerSlot) {
         continue;
       }
       const { x, y } = this.cellCenter(index);
@@ -173,7 +182,7 @@ class MergeScene extends Phaser.Scene {
   }
 
   private produce(): void {
-    const result = produceItem(this.board, this.activeFamily, Math.random, (level, family) => this.createBoardItem(level, family));
+    const result = produceItem(this.board, this.activeFamily, Math.random, (level, family) => this.createBoardItem(level, family), this.producerSlot);
     if (!result) {
       this.callbacks.onToast("The studio is full — make a little room first.");
       this.pulseProducer();
@@ -194,6 +203,13 @@ class MergeScene extends Phaser.Scene {
     if (!(gameObject instanceof Phaser.GameObjects.Image)) {
       return;
     }
+    if (gameObject === this.producerSprite) {
+      this.producerWasDragged = true;
+      gameObject.setDepth(30);
+      gameObject.setScale(1.08);
+      this.clearTarget();
+      return;
+    }
     const origin = gameObject.getData("slot");
     if (typeof origin !== "number") {
       return;
@@ -210,14 +226,23 @@ class MergeScene extends Phaser.Scene {
     dragX: number,
     dragY: number
   ): void {
-    if (!(gameObject instanceof Phaser.GameObjects.Image) || !this.dragState) {
+    if (!(gameObject instanceof Phaser.GameObjects.Image)) {
       return;
     }
+    if (gameObject === this.producerSprite) {
+      gameObject.x = dragX;
+      gameObject.y = dragY;
+      const target = this.slotAt(dragX, dragY);
+      if (target !== null && target !== this.producerSlot && this.board[target] === null) this.showTarget(target, true);
+      else this.clearTarget();
+      return;
+    }
+    if (!this.dragState) return;
     gameObject.x = dragX;
     gameObject.y = dragY;
     const target = this.slotAt(dragX, dragY);
     this.dragState.target = target;
-    if (target !== null && target !== this.dragState.origin && target !== PRODUCER_SLOT) {
+    if (target !== null && target !== this.dragState.origin && target !== this.producerSlot) {
       this.showTarget(target, true);
     } else {
       this.clearTarget();
@@ -225,20 +250,34 @@ class MergeScene extends Phaser.Scene {
   }
 
   private handleDragEnd(pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject): void {
-    if (!(gameObject instanceof Phaser.GameObjects.Image) || !this.dragState) {
+    if (!(gameObject instanceof Phaser.GameObjects.Image)) {
       return;
     }
+    if (gameObject === this.producerSprite) {
+      const target = this.slotAt(pointer.x, pointer.y);
+      this.clearTarget();
+      if (target === null || target === this.producerSlot || this.board[target] !== null) {
+        this.returnProducer();
+        return;
+      }
+      this.producerSlot = target;
+      this.callbacks.onProducerMove(target);
+      this.drawBoard();
+      this.returnProducer();
+      return;
+    }
+    if (!this.dragState) return;
     const origin = this.dragState.origin;
     const target = this.slotAt(pointer.x, pointer.y);
     this.dragState = null;
     this.clearTarget();
-    if (target === null || target === PRODUCER_SLOT) {
+    if (target === null || target === this.producerSlot) {
       this.returnSprite(gameObject, origin);
       return;
     }
     const targetItem = this.board[target];
     if (targetItem === null) {
-      const moved = moveItem(this.board, origin, target);
+      const moved = moveItem(this.board, origin, target, this.producerSlot);
       if (moved) {
         this.board = moved;
         this.callbacks.onBoardChange(this.board, { kind: "move", from: origin, to: target });
@@ -249,7 +288,7 @@ class MergeScene extends Phaser.Scene {
       return;
     }
     const source = this.board[origin];
-    const merged = mergeItems(this.board, origin, target, (level) => this.createBoardItem(level, source?.family ?? "drawing"));
+    const merged = mergeItems(this.board, origin, target, (level) => this.createBoardItem(level, source?.family ?? "drawing"), this.producerSlot);
     if (!merged) {
       this.callbacks.onToast(source?.level === 7 && source.family === targetItem?.family ? "That masterpiece is already at MAX level." : "Only matching items can merge.");
       this.returnSprite(gameObject, origin);
@@ -264,15 +303,19 @@ class MergeScene extends Phaser.Scene {
       this.tween(resultSprite, { scale: 1, duration: 220, ease: "Back.Out" });
     }
     this.burstAt(this.cellCenter(target), this.definitionColor(merged.resultLevel));
-    if (!this.reducedMotion) {
-      this.cameras.main.flash(110, 255, 244, 196, false);
-      this.cameras.main.shake(80, 0.0025);
-    }
   }
 
   private returnSprite(sprite: Phaser.GameObjects.Image, origin: number): void {
     const { x, y } = this.cellCenter(origin);
     sprite.setDepth(10);
+    this.tween(sprite, { x, y, scale: 1, duration: this.reducedMotion ? 0 : 150, ease: "Quad.Out" });
+  }
+
+  private returnProducer(): void {
+    const sprite = this.producerSprite;
+    if (!sprite) return;
+    const { x, y } = this.cellCenter(this.producerSlot);
+    sprite.setDepth(8);
     this.tween(sprite, { x, y, scale: 1, duration: this.reducedMotion ? 0 : 150, ease: "Quad.Out" });
   }
 

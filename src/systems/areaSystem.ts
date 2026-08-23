@@ -3,13 +3,14 @@ import type { TownAreaId } from "../types/content";
 import type { AreaProgress, AreaProgressMap } from "../types/area";
 import { createEmptyBoard } from "./boardSystem";
 import { createInitialOrders } from "../data/orderData";
+import { PRODUCER_SLOT } from "../config/gameConfig";
 
 export function createAreaProgressMap(): AreaProgressMap {
   return Object.fromEntries(TOWN_AREAS.map((area) => [area.id, createAreaProgress(area.id === "drawing-studio")])) as AreaProgressMap;
 }
 
 export function createAreaProgress(unlocked = false): AreaProgress {
-  return { unlocked, board: createEmptyBoard(), completedOrders: 0, orders: createInitialOrders(), orderSequence: 3 };
+  return { unlocked, board: createEmptyBoard(), producerSlot: PRODUCER_SLOT, completedOrders: 0, orders: createInitialOrders(), orderSequence: 3 };
 }
 
 export function isAreaUnlocked(id: TownAreaId, lifetimeCoins: number, villageLevel: number): boolean {

@@ -17,27 +17,27 @@ export function canMerge(first: BoardItem | null, second: BoardItem | null): boo
   return Boolean(first && second && first.family === second.family && first.level === second.level && first.level < 7);
 }
 
-export function findFreeSlots(board: BoardState): number[] {
+export function findFreeSlots(board: BoardState, producerSlot = PRODUCER_SLOT): number[] {
   const slots: number[] = [];
   for (let index = 0; index < board.length; index += 1) {
-    if (index !== PRODUCER_SLOT && board[index] === null) {
+    if (index !== producerSlot && board[index] === null) {
       slots.push(index);
     }
   }
   return slots;
 }
 
-export function findFirstItemAtLevel(board: BoardState, level: ItemLevel): number | null {
-  const index = board.findIndex((item, slot) => slot !== PRODUCER_SLOT && item?.level === level);
+export function findFirstItemAtLevel(board: BoardState, level: ItemLevel, producerSlot = PRODUCER_SLOT): number | null {
+  const index = board.findIndex((item, slot) => slot !== producerSlot && item?.level === level);
   return index === -1 ? null : index;
 }
 
-export function countItemsAtLevel(board: BoardState, level: ItemLevel, family?: ItemFamily): number {
-  return board.reduce((count, item, index) => count + (index !== PRODUCER_SLOT && item?.level === level && (!family || item.family === family) ? 1 : 0), 0);
+export function countItemsAtLevel(board: BoardState, level: ItemLevel, family?: ItemFamily, producerSlot = PRODUCER_SLOT): number {
+  return board.reduce((count, item, index) => count + (index !== producerSlot && item?.level === level && (!family || item.family === family) ? 1 : 0), 0);
 }
 
-export function moveItem(board: BoardState, from: number, to: number): BoardState | null {
-  if (!isUsableSlot(board, from) || !isUsableSlot(board, to) || board[from] === null || board[to] !== null) {
+export function moveItem(board: BoardState, from: number, to: number, producerSlot = PRODUCER_SLOT): BoardState | null {
+  if (!isUsableSlot(board, from, producerSlot) || !isUsableSlot(board, to, producerSlot) || board[from] === null || board[to] !== null) {
     return null;
   }
   const next = cloneBoard(board);
@@ -54,9 +54,10 @@ export function mergeItems(
   board: BoardState,
   from: number,
   to: number,
-  createMergedItem: (level: ItemLevel) => BoardItem
+  createMergedItem: (level: ItemLevel) => BoardItem,
+  producerSlot = PRODUCER_SLOT
 ): { board: BoardState; resultLevel: ItemLevel } | null {
-  if (!isUsableSlot(board, from) || !isUsableSlot(board, to) || !canMerge(board[from] ?? null, board[to] ?? null)) {
+  if (!isUsableSlot(board, from, producerSlot) || !isUsableSlot(board, to, producerSlot) || !canMerge(board[from] ?? null, board[to] ?? null)) {
     return null;
   }
   const source = board[from];
@@ -74,9 +75,9 @@ export function mergeItems(
   return { board: next, resultLevel };
 }
 
-export function removeItemsForOrder(board: BoardState, level: ItemLevel, quantity: number, family?: ItemFamily): { board: BoardState; removed: number[] } | null {
+export function removeItemsForOrder(board: BoardState, level: ItemLevel, quantity: number, family?: ItemFamily, producerSlot = PRODUCER_SLOT): { board: BoardState; removed: number[] } | null {
   const available = board
-    .map((item, index) => (index !== PRODUCER_SLOT && item?.level === level && (!family || item.family === family) ? index : -1))
+    .map((item, index) => (index !== producerSlot && item?.level === level && (!family || item.family === family) ? index : -1))
     .filter((index) => index >= 0);
   if (available.length < quantity) {
     return null;
@@ -92,10 +93,11 @@ export function removeItemsForOrder(board: BoardState, level: ItemLevel, quantit
 export function addItemsToBoard(
   board: BoardState,
   levels: readonly ItemLevel[],
-  createItem: (level: ItemLevel) => BoardItem
+  createItem: (level: ItemLevel) => BoardItem,
+  producerSlot = PRODUCER_SLOT
 ): { board: BoardState; placed: ItemLevel[]; unplaced: ItemLevel[] } {
   const next = cloneBoard(board);
-  const freeSlots = findFreeSlots(next);
+  const freeSlots = findFreeSlots(next, producerSlot);
   const placed: ItemLevel[] = [];
   const unplaced: ItemLevel[] = [];
   levels.forEach((level, index) => {
@@ -114,9 +116,10 @@ export function produceItem(
   board: BoardState,
   family: ItemFamily,
   random: () => number,
-  createItem: (level: ItemLevel, family: ItemFamily) => BoardItem
+  createItem: (level: ItemLevel, family: ItemFamily) => BoardItem,
+  producerSlot = PRODUCER_SLOT
 ): { board: BoardState; slot: number; level: ItemLevel } | null {
-  const freeSlots = findFreeSlots(board);
+  const freeSlots = findFreeSlots(board, producerSlot);
   const slot = freeSlots[0];
   if (slot === undefined) {
     return null;
@@ -127,6 +130,6 @@ export function produceItem(
   return { board: next, slot, level };
 }
 
-function isUsableSlot(board: BoardState, index: number): boolean {
-  return index >= 0 && index < board.length && index !== PRODUCER_SLOT && index < BOARD_SIZE;
+function isUsableSlot(board: BoardState, index: number, producerSlot: number): boolean {
+  return index >= 0 && index < board.length && index !== producerSlot && index < BOARD_SIZE;
 }

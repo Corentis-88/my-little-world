@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addItemsToBoard, createEmptyBoard, canMerge, mergeItems, moveItem, removeItemsForOrder } from "../src/systems/boardSystem";
+import { addItemsToBoard, createEmptyBoard, canMerge, mergeItems, moveItem, produceItem, removeItemsForOrder } from "../src/systems/boardSystem";
 import { createSpecialOrder } from "../src/data/orderData";
 import { createDefaultSaveGame, deserializeSaveGame, serializeSaveGame } from "../src/systems/saveSystem";
 import type { BoardItem } from "../src/types/game";
@@ -34,6 +34,14 @@ describe("merge board rules", () => {
     expect(moveItem(board, 2, 3)?.[2]).toBeNull();
     expect(moveItem(board, 2, 2)).toBeNull();
   });
+
+  it("reserves the producer's moved square in every board action", () => {
+    const board = createEmptyBoard();
+    board[0] = item(1, "movable");
+    expect(moveItem(board, 0, 5, 5)).toBeNull();
+    const produced = produceItem(board, "drawing", () => 0, (level) => item(level, "new"), 0);
+    expect(produced?.slot).toBe(1);
+  });
 });
 
 describe("save serialization", () => {
@@ -47,6 +55,7 @@ describe("save serialization", () => {
     save.specialOrder = createSpecialOrder(0, false, 1_000);
     save.areas["kitchen-table"].unlocked = true;
     save.areas["kitchen-table"].board[0] = item(2, "kitchen-save");
+    save.areas["kitchen-table"].producerSlot = 5;
     const restored = deserializeSaveGame(serializeSaveGame(save));
     expect(restored.coins).toBe(125);
     expect(restored.board[4]).toMatchObject({ id: "saved-item", level: 4 });
@@ -56,6 +65,7 @@ describe("save serialization", () => {
     expect(restored.regularOrdersCompleted).toBe(5);
     expect(restored.specialOrder).toMatchObject({ visitor: "margo", requestedLevel: 5, expiresAt: 901_000 });
     expect(restored.areas["kitchen-table"].board[0]).toMatchObject({ id: "kitchen-save" });
+    expect(restored.areas["kitchen-table"].producerSlot).toBe(5);
   });
 });
 

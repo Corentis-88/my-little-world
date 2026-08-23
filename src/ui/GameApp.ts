@@ -69,8 +69,9 @@ export class GameApp {
     });
     this.phaser = new PhaserGame(this.studio.boardElement, this.state.board, {
       onBoardChange: (board, meta) => this.handleBoardChange(board, meta),
+      onProducerMove: (slot) => this.handleProducerMove(slot),
       onToast: (message) => this.showToast(message)
-    }, this.state.activeFamily);
+    }, this.state.activeFamily, this.state.areas[this.state.activeArea].producerSlot);
     this.expireSpecialOrderIfNeeded();
     window.setTimeout(() => window.scrollTo(0, 0), 0);
   }
@@ -94,12 +95,17 @@ export class GameApp {
     this.studio?.update(this.state);
   }
 
+  private handleProducerMove(slot: number): void {
+    this.state.areas[this.state.activeArea].producerSlot = slot;
+    persistSaveGame(this.state);
+  }
+
   private deliverOrder(orderId: string): void {
     const order = this.state.orders.find((candidate) => candidate.id === orderId);
     if (!order) {
       return;
     }
-    const removed = removeItemsForOrder(this.state.board, order.requestedLevel, order.quantity);
+    const removed = removeItemsForOrder(this.state.board, order.requestedLevel, order.quantity, undefined, this.state.areas[this.state.activeArea].producerSlot);
     if (!removed) {
       this.showToast("That request is not ready quite yet.");
       return;
@@ -146,7 +152,7 @@ export class GameApp {
   private deliverMasterpieceOrder(): void {
     const order = this.state.masterpieceOrder;
     if (!order) return;
-    const removed = removeItemsForOrder(this.state.board, 7, order.quantity, order.family);
+    const removed = removeItemsForOrder(this.state.board, 7, order.quantity, order.family, this.state.areas[this.state.activeArea].producerSlot);
     if (!removed) return;
     this.state.board = removed.board; this.state.areas[this.state.activeArea].board = this.state.board; this.state.coins += order.reward; this.addEarnings(order.reward); this.state.masterpieceOrder = null;
     persistSaveGame(this.state); this.phaser?.syncBoard(this.state.board); this.studio?.update(this.state); this.studio?.animateCoins();
@@ -168,12 +174,13 @@ export class GameApp {
       this.expireSpecialOrderIfNeeded();
       return;
     }
-    const removed = removeItemsForOrder(this.state.board, order.requestedLevel, order.quantity, order.family);
+    const producerSlot = this.state.areas[this.state.activeArea].producerSlot;
+    const removed = removeItemsForOrder(this.state.board, order.requestedLevel, order.quantity, order.family, producerSlot);
     if (!removed) {
       this.showToast("Margo is still waiting for that special piece.");
       return;
     }
-    const reward = addItemsToBoard(removed.board, order.bonusItemLevels, (level) => this.createRewardItem(level));
+    const reward = addItemsToBoard(removed.board, order.bonusItemLevels, (level) => this.createRewardItem(level), producerSlot);
     const overflowCoins = reward.unplaced.length * GAME_CONFIG.specialVisit.fallbackCoinsPerSupply;
     this.state.board = reward.board;
     this.state.areas[this.state.activeArea].board = this.state.board;

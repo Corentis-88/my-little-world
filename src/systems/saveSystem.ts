@@ -68,7 +68,7 @@ function migrateSaveGame(value: unknown): SaveGame {
   const stage = value.buildings && isRecord(value.buildings) && value.buildings.drawingStudioStage === 1 ? 1 : 0;
   const areas = normaliseAreas(value.areas);
   if (!isRecord(value.areas)) {
-    areas["drawing-studio"].board = normaliseBoard(value.board);
+    areas["drawing-studio"].board = normaliseBoard(value.board, areas["drawing-studio"].producerSlot);
     areas["drawing-studio"].orders = normaliseOrders(value.orders, defaults.orders);
     areas["drawing-studio"].orderSequence = typeof value.orderSequence === "number" && Number.isInteger(value.orderSequence) && value.orderSequence >= 3 ? value.orderSequence : defaults.orderSequence;
   }
@@ -100,15 +100,21 @@ function normaliseAreas(value: unknown): AreaProgressMap {
   TOWN_AREAS.forEach((area) => {
     const saved = value[area.id];
     if (!isRecord(saved)) return;
+    const producerSlot = normaliseProducerSlot(saved.producerSlot);
     areas[area.id] = {
       unlocked: saved.unlocked === true || area.id === "drawing-studio",
-      board: normaliseBoard(saved.board),
+      board: normaliseBoard(saved.board, producerSlot),
+      producerSlot,
       completedOrders: normaliseNonNegativeInteger(saved.completedOrders, 0),
       orders: normaliseOrders(saved.orders, areas[area.id].orders),
       orderSequence: normalisePositiveInteger(saved.orderSequence, areas[area.id].orderSequence)
     };
   });
   return areas;
+}
+
+function normaliseProducerSlot(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value < BOARD_SIZE ? value : PRODUCER_SLOT;
 }
 
 function normaliseNonNegativeInteger(value: unknown, fallback: number): number {
@@ -137,13 +143,13 @@ function normaliseSpecialOrder(value: unknown): SpecialOrder | null {
   };
 }
 
-function normaliseBoard(value: unknown): BoardState {
+function normaliseBoard(value: unknown, producerSlot = PRODUCER_SLOT): BoardState {
   const board = createEmptyBoard();
   if (!Array.isArray(value)) {
     return board;
   }
   for (let index = 0; index < Math.min(value.length, BOARD_SIZE); index += 1) {
-    if (index === PRODUCER_SLOT) {
+    if (index === producerSlot) {
       continue;
     }
     const item = normaliseBoardItem(value[index]);
